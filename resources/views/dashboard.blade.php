@@ -27,7 +27,7 @@
         /* Sidebar Styles */
         .sidebar {
             width: 260px;
-            background: #891c1c;
+            background: #702637;
             color: white;
             position: fixed;
             height: 100vh;
@@ -149,6 +149,60 @@
             font-weight: 500;
         }
 
+        .menu-item-arrow {
+            margin-left: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .menu-item.expanded .menu-item-arrow {
+            transform: rotate(180deg);
+        }
+
+        .submenu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .submenu.expanded {
+            max-height: 200px;
+        }
+
+        .submenu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px 10px 52px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            position: relative;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .submenu-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+        }
+
+        .submenu-item.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .submenu-item::before {
+            content: '';
+            position: absolute;
+            left: 32px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+        }
+
         .sidebar-footer {
             position: absolute;
             bottom: 0;
@@ -156,7 +210,7 @@
             right: 0;
             padding: 20px;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
-            background: #891c1c;
+            background: #702637;
         }
 
         .user-profile {
@@ -184,7 +238,7 @@
             justify-content: center;
             font-weight: 600;
             font-size: 16px;
-            color: #891c1c;
+            color: #702637;
         }
 
         .user-info {
@@ -309,7 +363,7 @@
             right: 8px;
             width: 8px;
             height: 8px;
-            background: #891c1c;
+            background: #702637;
             border-radius: 50%;
             border: 2px solid white;
         }
@@ -370,11 +424,11 @@
         }
 
         .stat-icon.primary {
-            background: rgba(137, 28, 28, 0.1);
+            background: rgba(112, 38, 55, 0.1);
         }
 
         .stat-icon.primary .material-symbols-outlined {
-            color: #891c1c;
+            color: #702637;
             font-size: 24px;
             font-variation-settings: 'FILL' 1;
         }
@@ -433,41 +487,34 @@
                     <div class="logo-icon">
                         <span class="material-symbols-outlined">school</span>
                     </div>
-                    <div class="logo-text">QLTS Geek</div>
+                    <div class="logo-text">SIMULASI TKA - SDN GU 09</div>
                 </div>
             </div>
 
             <nav class="sidebar-menu">
                 <div class="menu-section">
                     <div class="menu-section-title">Menu</div>
-                    <a href="#" class="menu-item active">
+                    <a href="/dashboard" class="menu-item active">
                         <span class="material-symbols-outlined">dashboard</span>
                         <span class="menu-item-text">Dashboard</span>
                     </a>
-                    <a href="#" class="menu-item">
-                        <span class="material-symbols-outlined">school</span>
-                        <span class="menu-item-text">Study for MCT</span>
+                    <a href="/users" class="menu-item">
+                        <span class="material-symbols-outlined">group</span>
+                        <span class="menu-item-text">User Management</span>
                     </a>
-                    <a href="#" class="menu-item">
-                        <span class="material-symbols-outlined">library_books</span>
-                        <span class="menu-item-text">Study for OSCE</span>
-                    </a>
-                    <a href="#" class="menu-item">
-                        <span class="material-symbols-outlined">description</span>
-                        <span class="menu-item-text">Cheat Sheet</span>
-                    </a>
-                    <a href="#" class="menu-item">
-                        <span class="material-symbols-outlined">groups</span>
-                        <span class="menu-item-text">QLTS Social</span>
-                    </a>
-                    <a href="#" class="menu-item">
-                        <span class="material-symbols-outlined">support_agent</span>
-                        <span class="menu-item-text">Tutor Support</span>
-                    </a>
-                    <a href="#" class="menu-item">
-                        <span class="material-symbols-outlined">checklist</span>
-                        <span class="menu-item-text">Eligibility Criteria</span>
-                    </a>
+                    <div class="menu-item" onclick="toggleSubmenu(event)">
+                        <span class="material-symbols-outlined">quiz</span>
+                        <span class="menu-item-text">TKA</span>
+                        <span class="material-symbols-outlined menu-item-arrow" style="font-size: 18px;">expand_more</span>
+                    </div>
+                    <div class="submenu">
+                        <a href="/soal/create" class="submenu-item">
+                            <span class="menu-item-text">Buat Soal</span>
+                        </a>
+                        <a href="/soal" class="submenu-item">
+                            <span class="menu-item-text">List Soal</span>
+                        </a>
+                    </div>
                 </div>
 
                 <div class="menu-section">
@@ -479,14 +526,6 @@
                     <a href="#" class="menu-item">
                         <span class="material-symbols-outlined">help</span>
                         <span class="menu-item-text">Support</span>
-                    </a>
-                    <a href="#" class="menu-item">
-                        <span class="material-symbols-outlined">folder</span>
-                        <span class="menu-item-text">Library</span>
-                    </a>
-                    <a href="#" class="menu-item">
-                        <span class="material-symbols-outlined">mail</span>
-                        <span class="menu-item-text">Message</span>
                     </a>
                 </div>
             </nav>
@@ -590,6 +629,15 @@
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.toggle('active');
+        }
+
+        function toggleSubmenu(event) {
+            const menuItem = event.currentTarget;
+            const submenu = menuItem.nextElementSibling;
+            
+            // Toggle expanded class
+            menuItem.classList.toggle('expanded');
+            submenu.classList.toggle('expanded');
         }
 
         // Close sidebar when clicking outside on mobile
