@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buat Soal TKA - Simulasi TKA</title>
+    <title>Edit Soal TKA - Simulasi TKA</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
     <style>
@@ -777,17 +777,17 @@
                     </button>
                     <div>
                         <div style="font-size: 12px; color: #999; margin-bottom: 4px;">Simulasi TKA</div>
-                        <div style="font-size: 16px; font-weight: 600; color: #333;">Buat Soal</div>
+                        <div style="font-size: 16px; font-weight: 600; color: #333;">Edit Soal</div>
                     </div>
                 </div>
             </header>
 
             <!-- Content -->
             <div class="content">
-                <!-- Form Informasi Soal (Initial Form) -->
-                <div id="formInfoSoal" class="page-header" style="margin-bottom: 24px;">
+                <!-- Form Informasi Soal (Initial Form) - Hidden for edit -->
+                <div id="formInfoSoal" class="page-header" style="margin-bottom: 24px; display: none;">
                     <div style="width: 100%;">
-                        <h1 class="page-title">Buat Soal Baru</h1>
+                        <h1 class="page-title">Edit Soal</h1>
                         <p class="page-subtitle">Pilih mata pelajaran untuk memulai</p>
                         
                         <div style="background: white; padding: 24px; border-radius: 12px; margin-top: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
@@ -812,17 +812,18 @@
                     </div>
                 </div>
 
-                <!-- Form Soal (Hidden Initially) -->
-                <div id="formSoalContainer" style="display: none;">
+                <!-- Form Soal (Shown for edit) -->
+                <div id="formSoalContainer" style="display: block;">
                     <div class="page-header">
                         <div>
-                            <h1 class="page-title">Buat Soal</h1>
+                            <h1 class="page-title">Edit Soal</h1>
                             <p class="page-subtitle" id="infoMataPelajaran"></p>
                         </div>
                     </div>
 
-                    <form id="formSoal" method="POST" action="/soal" enctype="multipart/form-data">
+                    <form id="formSoal" method="POST" action="/soal/{{ $soal->id }}" enctype="multipart/form-data">
                         @csrf
+                        @method('PUT')
                         @if(session('success'))
                         <div class="alert alert-success" style="background: #d4edda; color: #155724; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #28a745;">
                             {{ session('success') }}
@@ -860,7 +861,7 @@
                             </button>
                             <button type="submit" class="btn btn-primary">
                                 <span class="material-symbols-outlined">save</span>
-                                Simpan Soal
+                                Update Soal
                             </button>
                         </div>
                     </form>
@@ -871,7 +872,101 @@
 
     <script>
         let soalCounter = 0;
-        let mataPelajaranData = '';
+        let mataPelajaranData = '{{ $soal->mataPelajaran->nama }}';
+        
+        // Pre-fill data for edit
+        const existingSoalData = {
+            id: {{ $soal->id }},
+            kode_soal: '{{ $soal->kode_soal }}',
+            mata_pelajaran: '{{ $soal->mataPelajaran->nama }}',
+            jenis_soal: '{{ $soal->jenis_soal }}',
+            pertanyaan: @json($soal->pertanyaan),
+            gambar_pertanyaan: '{{ $soal->gambar_pertanyaan }}',
+            jawaban_benar: '{{ $soal->jawaban_benar }}',
+            pembahasan: @json($soal->pembahasan),
+            kunci_jawaban: @json($soal->kunci_jawaban),
+            pilihan_jawaban: @json($soal->pilihanJawaban)
+        };
+
+        // Initialize edit mode on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set hidden inputs
+            document.getElementById('inputMataPelajaran').value = existingSoalData.mata_pelajaran;
+            document.getElementById('inputKodeSoal').value = existingSoalData.kode_soal;
+            
+            // Update info display
+            document.getElementById('infoMataPelajaran').textContent = `${existingSoalData.mata_pelajaran} (Kode: ${existingSoalData.kode_soal})`;
+            
+            // Load existing soal
+            loadExistingSoal();
+        });
+
+        // Function to load existing soal for edit
+        function loadExistingSoal() {
+            soalCounter = 0; // Start from 0 so tambahSoal() will make it 1
+            tambahSoal();
+            
+            // Fill in the soal data
+            setTimeout(() => {
+                const jenisSoalSelect = document.querySelector(`[name="jenis_soal_1"]`);
+                if (jenisSoalSelect) {
+                    jenisSoalSelect.value = existingSoalData.jenis_soal;
+                    ubahJenisSoal(1, existingSoalData.jenis_soal);
+                    
+                    setTimeout(() => {
+                        // Fill pertanyaan
+                        const pertanyaanInput = document.querySelector(`[name="pertanyaan_1"]`);
+                        if (pertanyaanInput) {
+                            pertanyaanInput.value = existingSoalData.pertanyaan;
+                        }
+                        
+                        // Fill pembahasan
+                        const pembahasanInput = document.querySelector(`[name="pembahasan_1"]`);
+                        if (pembahasanInput) {
+                            pembahasanInput.value = existingSoalData.pembahasan || '';
+                        }
+                        
+                        // Fill pilihan jawaban for pilihan ganda
+                        if (existingSoalData.jenis_soal === 'pilihan_ganda' || existingSoalData.jenis_soal === 'mcma') {
+                            existingSoalData.pilihan_jawaban.forEach((pilihan, index) => {
+                                const label = pilihan.label.toLowerCase();
+                                // Format: pilihan_1_a (not pilihan_a_1)
+                                const pilihanInput = document.querySelector(`[name="pilihan_1_${label}"]`);
+                                if (pilihanInput) {
+                                    pilihanInput.value = pilihan.teks_jawaban;
+                                }
+                            });
+                            
+                            // Set jawaban benar
+                            if (existingSoalData.jenis_soal === 'pilihan_ganda') {
+                                const jawabanRadio = document.querySelector(`[name="kunci_jawaban_1"][value="${existingSoalData.jawaban_benar}"]`);
+                                if (jawabanRadio) {
+                                    jawabanRadio.checked = true;
+                                }
+                            } else if (existingSoalData.jenis_soal === 'mcma') {
+                                const jawabanBenarArray = existingSoalData.jawaban_benar.split(',');
+                                jawabanBenarArray.forEach(jawaban => {
+                                    const checkbox = document.querySelector(`[name="kunci_jawaban_1[]"][value="${jawaban.trim()}"]`);
+                                    if (checkbox) {
+                                        checkbox.checked = true;
+                                    }
+                                });
+                            }
+                        } else if (existingSoalData.jenis_soal === 'benar_salah') {
+                            const jawabanRadio = document.querySelector(`[name="kunci_jawaban_1"][value="${existingSoalData.jawaban_benar}"]`);
+                            if (jawabanRadio) {
+                                jawabanRadio.checked = true;
+                            }
+                        } else if (existingSoalData.jenis_soal === 'isian' || existingSoalData.jenis_soal === 'uraian') {
+                            const kunciInput = document.querySelector(`[name="kunci_jawaban_1"]`);
+                            if (kunciInput) {
+                                kunciInput.value = existingSoalData.kunci_jawaban || '';
+                            }
+                        }
+                    }, 300);
+                }
+            }, 100);
+        }
 
         // Function to generate kode soal
         function generateKodeSoal(mataPelajaran) {

@@ -1090,11 +1090,6 @@
                         </div>
                         <p style="font-size: 12px; color: #999; margin-top: 8px;">* Pilih radio button untuk menandai kunci jawaban</p>
                     </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Pembahasan (Opsional)</label>
-                        <textarea class="form-textarea" name="pembahasan_${soalId}" placeholder="Masukkan pembahasan soal..." style="min-height: 100px;"></textarea>
-                    </div>
                 `;
             } else if (jenisSoal === 'benar_salah') {
                 contentDiv.innerHTML = `
@@ -1137,11 +1132,6 @@
                         </button>
                         <p style="font-size: 12px; color: #999; margin-top: 8px;">* Pilih Benar atau Salah untuk menandai kunci jawaban setiap pernyataan</p>
                     </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Pembahasan (Opsional)</label>
-                        <textarea class="form-textarea" name="pembahasan_${soalId}" placeholder="Masukkan pembahasan soal..." style="min-height: 100px;"></textarea>
-                    </div>
                 `;
             } else if (jenisSoal === 'mcma') {
                 contentDiv.innerHTML = `
@@ -1180,11 +1170,6 @@
                         </button>
                         <p style="font-size: 12px; color: #999; margin-top: 8px;">* Centang Benar untuk setiap pernyataan sebagai kunci jawaban</p>
                     </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Pembahasan (Opsional)</label>
-                        <textarea class="form-textarea" name="pembahasan_${soalId}" placeholder="Masukkan pembahasan soal..." style="min-height: 100px;"></textarea>
-                    </div>
                 `;
             } else if (jenisSoal === 'isian') {
                 contentDiv.innerHTML = `
@@ -1209,11 +1194,6 @@
                         <input type="text" class="pernyataan-input" name="kunci_jawaban_${soalId}" placeholder="Masukkan kunci jawaban singkat..." required>
                         <p style="font-size: 12px; color: #999; margin-top: 8px;">* Isi dengan jawaban singkat yang tepat</p>
                     </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Pembahasan (Opsional)</label>
-                        <textarea class="form-textarea" name="pembahasan_${soalId}" placeholder="Masukkan pembahasan soal..." style="min-height: 100px;"></textarea>
-                    </div>
                 `;
             } else if (jenisSoal === 'uraian') {
                 contentDiv.innerHTML = `
@@ -1237,11 +1217,6 @@
                         <label class="form-label">Kunci Jawaban / Rubrik Penilaian</label>
                         <textarea class="form-textarea" name="kunci_jawaban_${soalId}" placeholder="Masukkan kunci jawaban atau rubrik penilaian..." required style="min-height: 150px;"></textarea>
                         <p style="font-size: 12px; color: #999; margin-top: 8px;">* Isi dengan kunci jawaban atau panduan penilaian untuk jawaban uraian</p>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Pembahasan (Opsional)</label>
-                        <textarea class="form-textarea" name="pembahasan_${soalId}" placeholder="Masukkan pembahasan soal..." style="min-height: 100px;"></textarea>
                     </div>
                 `;
             }

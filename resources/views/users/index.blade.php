@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Management - Simulasi TKA</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    @include('layouts.styles')
     <style>
         * {
             margin: 0;
@@ -335,11 +334,6 @@
             font-weight: 600;
             color: #333;
             margin-bottom: 8px;
-        }
-
-        .page-subtitle {
-            font-size: 14px;
-            color: #999;
         }
 
         /* User Management Container */
@@ -736,85 +730,16 @@
 </head>
 <body>
     <div class="dashboard-container">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="logo-wrapper">
-                    <div class="logo-icon">
-                        <span class="material-symbols-outlined">school</span>
-                    </div>
-                    <div class="logo-text">QLTS Geek</div>
-                </div>
-            </div>
-
-            <nav class="sidebar-menu">
-                <div class="menu-section">
-                    <div class="menu-section-title">Menu</div>
-                    <a href="/dashboard" class="menu-item">
-                        <span class="material-symbols-outlined">dashboard</span>
-                        <span class="menu-item-text">Dashboard</span>
-                    </a>
-                    <a href="/users" class="menu-item active">
-                        <span class="material-symbols-outlined">group</span>
-                        <span class="menu-item-text">User Management</span>
-                    </a>
-                    <div class="menu-item" onclick="toggleSubmenu(event)">
-                        <span class="material-symbols-outlined">quiz</span>
-                        <span class="menu-item-text">TKA</span>
-                        <span class="material-symbols-outlined menu-item-arrow" style="font-size: 18px;">expand_more</span>
-                    </div>
-                    <div class="submenu">
-                        <a href="/soal/create" class="submenu-item">
-                            <span class="menu-item-text">Buat Soal</span>
-                        </a>
-                        <a href="/soal" class="submenu-item">
-                            <span class="menu-item-text">List Soal</span>
-                        </a>
-                    </div>
-                </div>
-
-                <div class="menu-section">
-                    <div class="menu-section-title">Help</div>
-                    <a href="#" class="menu-item">
-                        <span class="material-symbols-outlined">settings</span>
-                        <span class="menu-item-text">Setting</span>
-                    </a>
-                    <a href="#" class="menu-item">
-                        <span class="material-symbols-outlined">help</span>
-                        <span class="menu-item-text">Support</span>
-                    </a>
-                </div>
-            </nav>
-
-            <div class="sidebar-footer">
-                <div class="user-profile">
-                    <div class="user-avatar">SP</div>
-                    <div class="user-info">
-                        <div class="user-name">Sanket Pal</div>
-                        <div class="user-role">Admin</div>
-                    </div>
-                    <span class="material-symbols-outlined" style="font-size: 20px; color: rgba(255,255,255,0.6);">expand_more</span>
-                </div>
-            </div>
-        </aside>
+        @include('layouts.sidebar')
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Header -->
-            <header class="header">
-                <div class="header-left">
-                    <button class="menu-toggle" onclick="toggleSidebar()">
-                        <span class="material-symbols-outlined">menu</span>
-                    </button>
-                    <div>
-                        <div style="font-size: 12px; color: #999; margin-bottom: 4px;">QLTS Geek</div>
-                        <div style="font-size: 16px; font-weight: 600; color: #333;">User management</div>
-                    </div>
-                </div>
-                <div class="header-right">
-                    <div class="user-avatar-header">FS</div>
-                </div>
-            </header>
+            @include('layouts.header', [
+                'pageTitle' => 'User management', 
+                'breadcrumb' => 'Simulasi TKA',
+                'showAvatar' => true,
+                'avatarInitials' => 'MD'
+            ])
 
             <!-- Content -->
             <div class="content">
@@ -1001,10 +926,10 @@
                                         <th style="width: 40px;">
                                             <input type="checkbox" class="checkbox">
                                         </th>
-                                        <th>User name</th>
-                                        <th>Access</th>
-                                        <th>Last active</th>
-                                        <th>Date added</th>
+                                        <th>Nama Siswa</th>
+                                        <th>NISN</th>
+                                        <th>Tempat, Tanggal Lahir</th>
+                                        <th>Rombongan Belajar</th>
                                         <th style="width: 40px;"></th>
                                     </tr>
                                 </thead>
@@ -1026,13 +951,19 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <span class="badge badge-import">Siswa</span>
+                                            <span class="date-text">{{ $student->nisn ?? '-' }}</span>
                                         </td>
                                         <td>
-                                            <span class="date-text">{{ $student->updated_at->format('M d, Y') }}</span>
+                                            <span class="date-text">
+                                                @if($student->tempat_lahir && $student->tanggal_lahir)
+                                                    {{ $student->tempat_lahir }}, {{ \Carbon\Carbon::parse($student->tanggal_lahir)->format('d M Y') }}
+                                                @else
+                                                    -
+                                                @endif
+                                            </span>
                                         </td>
                                         <td>
-                                            <span class="date-text">{{ $student->created_at->format('M d, Y') }}</span>
+                                            <span class="badge badge-import">{{ $student->rombongan_belajar ?? '-' }}</span>
                                         </td>
                                         <td>
                                             <button class="action-btn" onclick="showActionMenu({{ $student->id }})">
@@ -1066,21 +997,8 @@
         </main>
     </div>
 
+    @include('layouts.scripts')
     <script>
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('active');
-        }
-
-        function toggleSubmenu(event) {
-            const menuItem = event.currentTarget;
-            const submenu = menuItem.nextElementSibling;
-            
-            // Toggle expanded class
-            menuItem.classList.toggle('expanded');
-            submenu.classList.toggle('expanded');
-        }
-
         function switchTab(tab) {
             // Remove active class from all tabs
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
