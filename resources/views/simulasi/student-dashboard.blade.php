@@ -15,7 +15,7 @@
 
         body {
             font-family: 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #702637 0%, #8B3347 100%);
+            background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
             min-height: 100vh;
             padding: 0;
         }
@@ -109,7 +109,7 @@
         .token-value {
             font-size: 32px;
             font-weight: 700;
-            color: #702637;
+            color: #0284c7;
             letter-spacing: 5px;
             text-align: center;
         }
@@ -117,7 +117,7 @@
         .refresh-btn {
             width: 100%;
             padding: 10px 16px;
-            background: #702637;
+            background: #0284c7;
             color: white;
             border: none;
             border-radius: 6px;
@@ -128,9 +128,9 @@
         }
 
         .refresh-btn:hover {
-            background: #8B3347;
+            background: #0369a1;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(112, 38, 55, 0.3);
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
         }
 
         .center-content {
@@ -160,12 +160,8 @@
             color: #333;
             margin-bottom: 24px;
         }
-        .form-title {
-            font-size: 24px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 24px;
-        }
+        
+        /* Removed duplicate .form-title rule */
 
         .form-group {
             margin-bottom: 20px;
@@ -195,9 +191,9 @@
         .form-input:focus,
         .form-select:focus {
             outline: none;
-            border-color: #702637;
+            border-color: #0284c7;
             background: white;
-            box-shadow: 0 0 0 3px rgba(112, 38, 55, 0.1);
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
         }
 
         .name-input-wrapper {
@@ -247,7 +243,7 @@
         .btn-submit {
             width: 100%;
             padding: 14px;
-            background: #702637;
+            background: #0284c7;
             color: white;
             border: none;
             border-radius: 8px;
@@ -259,9 +255,9 @@
         }
 
         .btn-submit:hover {
-            background: #8B3347;
+            background: #0369a1;
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(112, 38, 55, 0.3);
+            box-shadow: 0 6px 20px rgba(2, 132, 199, 0.3);
         }
 
         .btn-submit:active {
@@ -296,17 +292,20 @@
     <nav class="navbar">
         <div class="navbar-brand">
             <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
-                <circle cx="24" cy="24" r="24" fill="#702637"/>
+                <circle cx="24" cy="24" r="24" fill="#0284c7"/>
                 <path d="M24 12L28 20H32L26 28L28 36L24 32L20 36L22 28L16 20H20L24 12Z" fill="white"/>
             </svg>
             <div class="navbar-title">
                 <div class="navbar-title-main">SDN GROGOL UTARA 09</div>
-                <div class="navbar-title-sub">SIMULASI ANBK</div>
+                <div class="navbar-title-sub">SIMULASI TKA</div>
             </div>
         </div>
         <div class="navbar-user">
             <span>{{ $student->nisn }} - {{ strtoupper($student->name) }}</span>
-            <a href="/simulasi/student-logout" style="color: #702637; text-decoration: none; display: flex; align-items: center;">
+            <a href="{{ route('simulasi.riwayat.nilai') }}" style="color: #0284c7; text-decoration: none; display: flex; align-items: center; margin-right: 16px;" title="Riwayat Nilai">
+                <span class="material-symbols-outlined" style="font-size: 20px;">assessment</span>
+            </a>
+            <a href="/simulasi/student-logout" style="color: #0284c7; text-decoration: none; display: flex; align-items: center;">
                 <span class="material-symbols-outlined" style="font-size: 20px;">logout</span>
             </a>
         </div>
@@ -326,6 +325,18 @@
         <div class="center-content">
             <div class="form-section">
                 <h2 class="form-title">Konfirmasi data Peserta</h2>
+                
+                @if(session('error'))
+                <div style="background: #FDE8E8; color: #9B1C1C; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 14px;">
+                    {{ session('error') }}
+                </div>
+                @endif
+
+                @if(session('success'))
+                <div style="background: #DEF7EC; color: #03543F; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 14px;">
+                    {{ session('success') }}
+                </div>
+                @endif
                 
                 <form action="/simulasi/confirm-data" method="POST">
                     @csrf

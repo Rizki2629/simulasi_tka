@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="paste-upload-url" content="{{ route('soal.upload.paste.image') }}">
     <title>Buat Soal TKA - Simulasi TKA</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
@@ -821,6 +823,15 @@
                         </div>
                     </div>
 
+                    <!-- Paste Image Hint -->
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 20px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+                        <span class="material-symbols-outlined" style="font-size: 24px;">info</span>
+                        <div style="flex: 1;">
+                            <strong style="display: block; margin-bottom: 4px;">💡 Tips: Paste Gambar Langsung!</strong>
+                            <span style="font-size: 14px; opacity: 0.95;">Klik pada area pertanyaan atau pilihan jawaban, lalu tekan <kbd style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 4px; font-family: monospace;">Ctrl+V</kbd> untuk paste gambar dari clipboard Anda. Tidak perlu klik tombol upload!</span>
+                        </div>
+                    </div>
+
                     <form id="formSoal" method="POST" action="/soal" enctype="multipart/form-data">
                         @csrf
                         @if(session('success'))
@@ -1116,9 +1127,21 @@
 
                     <div class="form-group">
                         <label class="form-label">Pernyataan</label>
+                        <p style="font-size: 12px; color: #666; margin-bottom: 8px;">💡 Tip: Anda bisa paste gambar langsung pada input pernyataan</p>
                         <div class="pernyataan-list" id="pernyataan-list-${soalId}">
                             <div class="pernyataan-item">
                                 <input type="text" class="pernyataan-input" name="pernyataan_${soalId}[]" placeholder="Pernyataan 1" required>
+                                <div class="upload-container" style="margin: 8px 0;">
+                                    <label class="upload-btn" style="font-size: 12px; padding: 6px 12px;">
+                                        <span class="material-symbols-outlined" style="font-size: 16px;">image</span>
+                                        Upload Gambar Pernyataan
+                                        <input type="file" name="gambar_pernyataan_${soalId}_1" accept="image/*" onchange="previewImage(this, 'preview-pernyataan-${soalId}-1')">
+                                    </label>
+                                    <div id="preview-pernyataan-${soalId}-1" class="upload-wrapper" style="display: none;">
+                                        <img class="image-preview" src="" alt="Preview">
+                                        <button type="button" class="remove-image-btn" onclick="removeImage('preview-pernyataan-${soalId}-1', this)">Hapus</button>
+                                    </div>
+                                </div>
                                 <div class="checkbox-group">
                                     <div class="checkbox-item">
                                         <input type="radio" id="benar_${soalId}_1" name="kunci_${soalId}_1" value="benar" required>
@@ -1163,9 +1186,21 @@
 
                     <div class="form-group">
                         <label class="form-label">Pernyataan (Tentukan Benar atau Salah)</label>
+                        <p style="font-size: 12px; color: #666; margin-bottom: 8px;">💡 Tip: Anda bisa paste gambar langsung pada input pernyataan</p>
                         <div class="pernyataan-list" id="pernyataan-list-${soalId}">
                             <div class="pernyataan-item">
                                 <input type="text" class="pernyataan-input" name="pernyataan_${soalId}[]" placeholder="Pernyataan 1" required>
+                                <div class="upload-container" style="margin: 8px 0;">
+                                    <label class="upload-btn" style="font-size: 12px; padding: 6px 12px;">
+                                        <span class="material-symbols-outlined" style="font-size: 16px;">image</span>
+                                        Upload Gambar Pernyataan
+                                        <input type="file" name="gambar_pernyataan_${soalId}_1" accept="image/*" onchange="previewImage(this, 'preview-pernyataan-${soalId}-1')">
+                                    </label>
+                                    <div id="preview-pernyataan-${soalId}-1" class="upload-wrapper" style="display: none;">
+                                        <img class="image-preview" src="" alt="Preview">
+                                        <button type="button" class="remove-image-btn" onclick="removeImage('preview-pernyataan-${soalId}-1', this)">Hapus</button>
+                                    </div>
+                                </div>
                                 <div class="checkbox-group">
                                     <div class="checkbox-item">
                                         <input type="checkbox" id="benar_${soalId}_1" name="kunci_${soalId}_1_benar" value="benar">
@@ -1397,5 +1432,8 @@
             previewWrapper.style.display = 'none';
         }
     </script>
+    
+    <!-- Paste Image Upload Script -->
+    <script src="{{ asset('js/paste-image-upload.js') }}"></script>
 </body>
 </html>

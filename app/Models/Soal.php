@@ -41,4 +41,9 @@ class Soal extends Model
     {
         return $this->hasMany(SimulasiSoal::class);
     }
+
+    public function subSoal()
+    {
+        return $this->hasMany(SubSoal::class)->orderBy('nomor_urut');
+    }
 }

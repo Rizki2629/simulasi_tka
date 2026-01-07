@@ -26,6 +26,20 @@ class User extends Authenticatable
         'tempat_lahir',
         'tanggal_lahir',
         'rombongan_belajar',
+        'nipd',
+        'jenis_kelamin',
+        'nik',
+        'agama',
+        'alamat',
+        'rt',
+        'rw',
+        'dusun',
+        'kelurahan',
+        'kecamatan',
+        'kode_pos',
+        'no_hp',
+        'nama_ayah',
+        'nama_ibu',
     ];
 
     /**

@@ -667,16 +667,29 @@
                                 <span>Pilih siswa yang akan mengikuti simulasi ini</span>
                             </div>
                             
+                            <div class="form-group" style="margin-bottom: 16px;">
+                                <label class="form-label">Filter berdasarkan Rombongan Belajar</label>
+                                <select class="form-select" id="rombelFilter" onchange="filterByRombel()">
+                                    <option value="">Semua Kelas</option>
+                                    @php
+                                        $rombels = $students->pluck('rombongan_belajar')->unique()->sort()->values();
+                                    @endphp
+                                    @foreach($rombels as $rombel)
+                                        <option value="{{ $rombel }}">Kelas {{ $rombel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            
                             <div class="select-all-container">
                                 <label class="select-all-item">
                                     <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
-                                    <span>Pilih Semua Siswa</span>
+                                    <span id="selectAllText">Pilih Semua Siswa</span>
                                 </label>
                             </div>
 
                             <div class="checkbox-list">
                                 @foreach($students as $student)
-                                <label class="checkbox-item">
+                                <label class="checkbox-item" data-rombel="{{ $student->rombongan_belajar }}">
                                     <input type="checkbox" class="student-checkbox" name="peserta[]" value="{{ $student->id }}">
                                     <span class="checkbox-label">
                                         <div>{{ $student->name }}</div>
@@ -744,9 +757,40 @@
             submenu.classList.toggle('expanded');
         }
 
+        function filterByRombel() {
+            const filterValue = document.getElementById('rombelFilter').value;
+            const checkboxItems = document.querySelectorAll('.checkbox-item');
+            const selectAllText = document.getElementById('selectAllText');
+            let visibleCount = 0;
+            
+            checkboxItems.forEach(item => {
+                const rombel = item.getAttribute('data-rombel');
+                if (filterValue === '' || rombel === filterValue) {
+                    item.style.display = '';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                    // Uncheck hidden items
+                    const checkbox = item.querySelector('.student-checkbox');
+                    if (checkbox) checkbox.checked = false;
+                }
+            });
+            
+            // Update select all text
+            if (filterValue === '') {
+                selectAllText.textContent = 'Pilih Semua Siswa';
+            } else {
+                selectAllText.textContent = `Pilih Semua Siswa Kelas ${filterValue} (${visibleCount} siswa)`;
+            }
+            
+            // Reset select all checkbox
+            document.getElementById('selectAll').checked = false;
+            document.getElementById('selectAll').indeterminate = false;
+        }
+
         function toggleSelectAll() {
             const selectAll = document.getElementById('selectAll');
-            const checkboxes = document.querySelectorAll('.student-checkbox');
+            const checkboxes = document.querySelectorAll('.checkbox-item:not([style*="display: none"]) .student-checkbox');
             
             checkboxes.forEach(checkbox => {
                 checkbox.checked = selectAll.checked;
@@ -757,11 +801,11 @@
         document.querySelectorAll('.student-checkbox').forEach(checkbox => {
             checkbox.addEventListener('change', function() {
                 const selectAll = document.getElementById('selectAll');
-                const checkboxes = document.querySelectorAll('.student-checkbox');
-                const checkedCount = document.querySelectorAll('.student-checkbox:checked').length;
+                const visibleCheckboxes = document.querySelectorAll('.checkbox-item:not([style*="display: none"]) .student-checkbox');
+                const checkedVisibleCount = Array.from(visibleCheckboxes).filter(cb => cb.checked).length;
                 
-                selectAll.checked = checkedCount === checkboxes.length;
-                selectAll.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
+                selectAll.checked = checkedVisibleCount ===visibleCheckboxes.length && visibleCheckboxes.length > 0;
+                selectAll.indeterminate = checkedVisibleCount > 0 && checkedVisibleCount < visibleCheckboxes.length;
             });
         });
 

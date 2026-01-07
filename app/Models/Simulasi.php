@@ -44,4 +44,9 @@ class Simulasi extends Model
     {
         return $this->hasMany(SimulasiPeserta::class);
     }
+
+    public function nilai()
+    {
+        return $this->hasMany(Nilai::class);
+    }
 }

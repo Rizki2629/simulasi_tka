@@ -295,16 +295,16 @@
             <div class="form-group">
                 <div class="input-wrapper">
                     <input 
-                        type="email" 
+                        type="text" 
                         name="email" 
                         id="email" 
                         class="input-field" 
                         placeholder=" "
                         value="{{ old('email') }}"
                         required
-                        autocomplete="email"
+                        autocomplete="username"
                     >
-                    <label for="email" class="input-label">Email</label>
+                    <label for="email" class="input-label">Username</label>
                 </div>
                 @error('email')
                     <div class="error-message">

@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="paste-upload-url" content="{{ route('soal.upload.paste.image') }}">
     <title>Edit Soal TKA - Simulasi TKA</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
@@ -490,6 +492,80 @@
             border-radius: 8px;
             border: 2px solid #E5E7EB;
             object-fit: contain;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .image-preview:hover {
+            transform: scale(1.05);
+            border-color: #702637;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Image Zoom Modal */
+        .image-zoom-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .image-zoom-modal.active {
+            display: flex;
+        }
+
+        .image-zoom-content {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 8px;
+            animation: zoomIn 0.3s ease;
+        }
+
+        .image-zoom-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 40px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.1);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .image-zoom-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(90deg);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes zoomIn {
+            from { 
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            to { 
+                transform: scale(1);
+                opacity: 1;
+            }
         }
 
         .remove-image-btn {
@@ -654,6 +730,7 @@
             gap: 8px;
         }
 
+
         .add-soal-btn:hover {
             border-color: #702637;
             color: #702637;
@@ -697,7 +774,7 @@
         }
     </style>
 </head>
-<body>
+<body class="edit-mode">
     <div class="dashboard-container">
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
@@ -821,6 +898,15 @@
                         </div>
                     </div>
 
+                    <!-- Paste Image Hint -->
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 20px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+                        <span class="material-symbols-outlined" style="font-size: 24px;">info</span>
+                        <div style="flex: 1;">
+                            <strong style="display: block; margin-bottom: 4px;">💡 Tips: Paste Gambar Langsung!</strong>
+                            <span style="font-size: 14px; opacity: 0.95;">Klik pada area pertanyaan atau pilihan jawaban, lalu tekan <kbd style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 4px; font-family: monospace;">Ctrl+V</kbd> untuk paste gambar dari clipboard Anda. Tidak perlu klik tombol upload!</span>
+                        </div>
+                    </div>
+
                     <form id="formSoal" method="POST" action="/soal/{{ $soal->id }}" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
@@ -859,6 +945,9 @@
                             <button type="button" class="btn btn-secondary" onclick="kembaliKeInfoSoal()">
                                 Kembali
                             </button>
+                            <button type="button" class="btn btn-secondary" onclick="debugDataAttributes()" style="background: #6c757d;">
+                                🔍 Debug Data Attributes
+                            </button>
                             <button type="submit" class="btn btn-primary">
                                 <span class="material-symbols-outlined">save</span>
                                 Update Soal
@@ -880,12 +969,12 @@
             kode_soal: '{{ $soal->kode_soal }}',
             mata_pelajaran: '{{ $soal->mataPelajaran->nama }}',
             jenis_soal: '{{ $soal->jenis_soal }}',
-            pertanyaan: @json($soal->pertanyaan),
+            pertanyaan: {!! json_encode($soal->pertanyaan) !!},
             gambar_pertanyaan: '{{ $soal->gambar_pertanyaan }}',
-            jawaban_benar: '{{ $soal->jawaban_benar }}',
-            pembahasan: @json($soal->pembahasan),
-            kunci_jawaban: @json($soal->kunci_jawaban),
-            pilihan_jawaban: @json($soal->pilihanJawaban)
+            pembahasan: {!! json_encode($soal->pembahasan) !!},
+            gambar_pembahasan: '{{ $soal->gambar_pembahasan }}',
+            pilihan_jawaban: @json($soal->pilihanJawaban),
+            sub_soal: @json($soal->subSoal)
         };
 
         // Initialize edit mode on page load
@@ -903,69 +992,150 @@
 
         // Function to load existing soal for edit
         function loadExistingSoal() {
-            soalCounter = 0; // Start from 0 so tambahSoal() will make it 1
-            tambahSoal();
+            soalCounter = 0;
+            document.getElementById('soalList').innerHTML = '';
             
-            // Fill in the soal data
-            setTimeout(() => {
-                const jenisSoalSelect = document.querySelector(`[name="jenis_soal_1"]`);
-                if (jenisSoalSelect) {
-                    jenisSoalSelect.value = existingSoalData.jenis_soal;
-                    ubahJenisSoal(1, existingSoalData.jenis_soal);
-                    
-                    setTimeout(() => {
-                        // Fill pertanyaan
-                        const pertanyaanInput = document.querySelector(`[name="pertanyaan_1"]`);
-                        if (pertanyaanInput) {
-                            pertanyaanInput.value = existingSoalData.pertanyaan;
-                        }
+            // Load semua sub-soal
+            const subSoalList = existingSoalData.sub_soal || [];
+            
+            // Check if this is a simple question (pilihan_ganda, isian, uraian without sub_soal)
+            if (subSoalList.length === 0 && existingSoalData.jenis_soal) {
+                // Load as single question form
+                tambahSoal();
+                
+                setTimeout(() => {
+                    const soalId = 1;
+                    const jenisSoalSelect = document.querySelector(`[name="jenis_soal_${soalId}"]`);
+                    if (jenisSoalSelect) {
+                        jenisSoalSelect.value = existingSoalData.jenis_soal;
+                        ubahJenisSoal(soalId, existingSoalData.jenis_soal);
                         
-                        // Fill pembahasan
-                        const pembahasanInput = document.querySelector(`[name="pembahasan_1"]`);
-                        if (pembahasanInput) {
-                            pembahasanInput.value = existingSoalData.pembahasan || '';
-                        }
-                        
-                        // Fill pilihan jawaban for pilihan ganda
-                        if (existingSoalData.jenis_soal === 'pilihan_ganda' || existingSoalData.jenis_soal === 'mcma') {
-                            existingSoalData.pilihan_jawaban.forEach((pilihan, index) => {
-                                const label = pilihan.label.toLowerCase();
-                                // Format: pilihan_1_a (not pilihan_a_1)
-                                const pilihanInput = document.querySelector(`[name="pilihan_1_${label}"]`);
-                                if (pilihanInput) {
-                                    pilihanInput.value = pilihan.teks_jawaban;
-                                }
-                            });
+                        setTimeout(() => {
+                            // Fill pertanyaan
+                            const pertanyaanInput = document.querySelector(`[name="pertanyaan_${soalId}"]`);
+                            if (pertanyaanInput) {
+                                pertanyaanInput.value = existingSoalData.pertanyaan || '';
+                            }
+
+                            // Show existing question image if available
+                            if (existingSoalData.gambar_pertanyaan) {
+                                console.log('Attempting to show existing image:', existingSoalData.gambar_pertanyaan);
+                                setTimeout(() => {
+                                    showExistingImage(`preview-soal-${soalId}`, existingSoalData.gambar_pertanyaan);
+                                }, 150);
+                            }
                             
-                            // Set jawaban benar
+                            // Fill pembahasan
+                            const pembahasanInput = document.querySelector(`[name="pembahasan_${soalId}"]`);
+                            if (pembahasanInput) {
+                                pembahasanInput.value = existingSoalData.pembahasan || '';
+                            }
+                            
+                            // Fill pilihan jawaban untuk pilihan ganda
                             if (existingSoalData.jenis_soal === 'pilihan_ganda') {
-                                const jawabanRadio = document.querySelector(`[name="kunci_jawaban_1"][value="${existingSoalData.jawaban_benar}"]`);
-                                if (jawabanRadio) {
-                                    jawabanRadio.checked = true;
-                                }
-                            } else if (existingSoalData.jenis_soal === 'mcma') {
-                                const jawabanBenarArray = existingSoalData.jawaban_benar.split(',');
-                                jawabanBenarArray.forEach(jawaban => {
-                                    const checkbox = document.querySelector(`[name="kunci_jawaban_1[]"][value="${jawaban.trim()}"]`);
-                                    if (checkbox) {
-                                        checkbox.checked = true;
+                                (existingSoalData.pilihan_jawaban || []).forEach((pilihan) => {
+                                    const label = pilihan.label.toLowerCase();
+                                    const pilihanInput = document.querySelector(`[name="pilihan_${soalId}_${label}"]`);
+                                    if (pilihanInput) {
+                                        pilihanInput.value = pilihan.teks_jawaban;
+                                    }
+
+                                    // Show existing answer image if available
+                                    if (pilihan.gambar_jawaban) {
+                                        console.log('Attempting to show existing answer image:', label, pilihan.gambar_jawaban);
+                                        setTimeout(() => {
+                                            showExistingImage(`preview-${label}-${soalId}`, pilihan.gambar_jawaban);
+                                        }, 150);
+                                    }
+                                    
+                                    // Set correct answer radio
+                                    if (pilihan.is_benar) {
+                                        const jawabanRadio = document.querySelector(`[name="kunci_jawaban_${soalId}"][value="${label.toUpperCase()}"]`);
+                                        if (jawabanRadio) {
+                                            jawabanRadio.checked = true;
+                                        }
                                     }
                                 });
                             }
-                        } else if (existingSoalData.jenis_soal === 'benar_salah') {
-                            const jawabanRadio = document.querySelector(`[name="kunci_jawaban_1"][value="${existingSoalData.jawaban_benar}"]`);
-                            if (jawabanRadio) {
-                                jawabanRadio.checked = true;
+                        }, 100);
+                    }
+                }, 100);
+                return;
+            }
+            
+            if (subSoalList.length === 0) {
+                // Jika belum ada sub-soal dan bukan single question, tambahkan 1 form kosong
+                tambahSoal();
+                return;
+            }
+            
+            // Load setiap sub-soal
+            subSoalList.forEach((subSoal, index) => {
+                tambahSoal();
+                
+                setTimeout(() => {
+                    const soalId = index + 1;
+                    const jenisSoalSelect = document.querySelector(`[name="jenis_soal_${soalId}"]`);
+                    if (jenisSoalSelect) {
+                        jenisSoalSelect.value = subSoal.jenis_soal;
+                        ubahJenisSoal(soalId, subSoal.jenis_soal);
+                        
+                        setTimeout(() => {
+                            // Fill pertanyaan
+                            const pertanyaanInput = document.querySelector(`[name="pertanyaan_${soalId}"]`);
+                            if (pertanyaanInput) {
+                                pertanyaanInput.value = subSoal.pertanyaan;
                             }
-                        } else if (existingSoalData.jenis_soal === 'isian' || existingSoalData.jenis_soal === 'uraian') {
-                            const kunciInput = document.querySelector(`[name="kunci_jawaban_1"]`);
-                            if (kunciInput) {
-                                kunciInput.value = existingSoalData.kunci_jawaban || '';
+
+                            // Show existing question image if available
+                            if (subSoal.gambar_pertanyaan) {
+                                console.log('SubSoal - Attempting to show existing image:', subSoal.gambar_pertanyaan);
+                                setTimeout(() => {
+                                    showExistingImage(`preview-soal-${soalId}`, subSoal.gambar_pertanyaan);
+                                }, 150);
                             }
-                        }
-                    }, 300);
-                }
-            }, 100);
+                            
+                            // Fill pembahasan
+                            const pembahasanInput = document.querySelector(`[name="pembahasan_${soalId}"]`);
+                            if (pembahasanInput) {
+                                pembahasanInput.value = subSoal.pembahasan || '';
+                            }
+                            
+                            // Fill pilihan jawaban sesuai jenis soal
+                            if (subSoal.jenis_soal === 'pilihan_ganda') {
+                                (subSoal.pilihan_jawaban || []).forEach((pilihan) => {
+                                    const label = pilihan.label.toLowerCase();
+                                    const pilihanInput = document.querySelector(`[name="pilihan_${soalId}_${label}"]`);
+                                    if (pilihanInput) {
+                                        pilihanInput.value = pilihan.teks_jawaban;
+                                    }
+
+                                    if (pilihan.gambar_jawaban) {
+                                        console.log('SubSoal PG - Attempting to show answer image:', label, pilihan.gambar_jawaban);
+                                        setTimeout(() => {
+                                            showExistingImage(`preview-${label}-${soalId}`, pilihan.gambar_jawaban);
+                                        }, 150);
+                                    }
+                                });
+
+                                const jawabanRadio = document.querySelector(`[name="kunci_jawaban_${soalId}"][value="${subSoal.jawaban_benar}"]`);
+                                if (jawabanRadio) {
+                                    jawabanRadio.checked = true;
+                                }
+                            } else if (subSoal.jenis_soal === 'mcma') {
+                                populateMcmaData(soalId, subSoal.pilihan_jawaban || []);
+                            } else if (subSoal.jenis_soal === 'benar_salah') {
+                                populateBenarSalahData(soalId, subSoal.pilihan_jawaban || []);
+                            } else if (subSoal.jenis_soal === 'isian' || subSoal.jenis_soal === 'uraian') {
+                                const kunciInput = document.querySelector(`[name="kunci_jawaban_${soalId}"]`);
+                                if (kunciInput) {
+                                    kunciInput.value = subSoal.kunci_jawaban || '';
+                                }
+                            }
+                        }, 300);
+                    }
+                }, 100 * (index + 1));
+            });
         }
 
         // Function to generate kode soal
@@ -1053,9 +1223,6 @@
             soalCard.innerHTML = `
                 <div class="soal-header">
                     <div class="soal-number">Soal nomor ${soalCounter}</div>
-                    <button type="button" class="delete-btn" onclick="hapusSoal(${soalCounter})">
-                        <span class="material-symbols-outlined">delete</span>
-                    </button>
                 </div>
 
                 <div class="form-group">
@@ -1342,6 +1509,102 @@
             }
         }
 
+        function populateBenarSalahData(soalId, pilihanList) {
+            const pernyataanList = document.getElementById(`pernyataan-list-${soalId}`);
+            if (!pernyataanList) {
+                return;
+            }
+
+            if (pernyataanList.children.length === 0) {
+                tambahPernyataan(soalId);
+            }
+
+            while (pernyataanList.children.length < pilihanList.length) {
+                tambahPernyataan(soalId);
+            }
+
+            const items = pernyataanList.querySelectorAll('.pernyataan-item');
+            pilihanList.forEach((pilihan, index) => {
+                const item = items[index];
+                if (!item) {
+                    return;
+                }
+
+                const input = item.querySelector('.pernyataan-input');
+                if (input) {
+                    input.value = pilihan.teks_jawaban || '';
+                }
+
+                const radios = item.querySelectorAll('input[type="radio"]');
+                radios.forEach(radio => {
+                    radio.checked = radio.value === (pilihan.is_benar ? 'benar' : 'salah');
+                });
+
+                // Show existing pernyataan image if available
+                if (pilihan.gambar_jawaban) {
+                    const pernyataanNumber = index + 1;
+                    console.log('BenarSalah - Attempting to show pernyataan image:', pernyataanNumber, pilihan.gambar_jawaban);
+                    setTimeout(() => {
+                        showExistingImage(`preview-pernyataan-${soalId}-${pernyataanNumber}`, pilihan.gambar_jawaban);
+                    }, 200 + (index * 50));
+                }
+            });
+
+            if (pilihanList.length > 0 && items.length > pilihanList.length) {
+                for (let i = pilihanList.length; i < items.length; i++) {
+                    items[i].remove();
+                }
+            }
+        }
+
+        function populateMcmaData(soalId, pilihanList) {
+            const pernyataanList = document.getElementById(`pernyataan-list-${soalId}`);
+            if (!pernyataanList) {
+                return;
+            }
+
+            if (pernyataanList.children.length === 0) {
+                tambahPernyataanMCMA(soalId);
+            }
+
+            while (pernyataanList.children.length < pilihanList.length) {
+                tambahPernyataanMCMA(soalId);
+            }
+
+            const items = pernyataanList.querySelectorAll('.pernyataan-item');
+            pilihanList.forEach((pilihan, index) => {
+                const item = items[index];
+                if (!item) {
+                    return;
+                }
+
+                const input = item.querySelector('.pernyataan-input');
+                if (input) {
+                    input.value = pilihan.teks_jawaban || '';
+                }
+
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                if (checkbox) {
+                    checkbox.checked = !!pilihan.is_benar;
+                }
+
+                // Show existing pernyataan image if available
+                if (pilihan.gambar_jawaban) {
+                    const pernyataanNumber = index + 1;
+                    console.log('MCMA - Attempting to show pernyataan image:', pernyataanNumber, pilihan.gambar_jawaban);
+                    setTimeout(() => {
+                        showExistingImage(`preview-pernyataan-${soalId}-${pernyataanNumber}`, pilihan.gambar_jawaban);
+                    }, 200 + (index * 50));
+                }
+            });
+
+            if (pilihanList.length > 0 && items.length > pilihanList.length) {
+                for (let i = pilihanList.length; i < items.length; i++) {
+                    items[i].remove();
+                }
+            }
+        }
+
         function tambahPernyataan(soalId) {
             const pernyataanList = document.getElementById(`pernyataan-list-${soalId}`);
             const pernyataanCount = pernyataanList.children.length + 1;
@@ -1350,6 +1613,17 @@
             pernyataanItem.className = 'pernyataan-item';
             pernyataanItem.innerHTML = `
                 <input type="text" class="pernyataan-input" name="pernyataan_${soalId}[]" placeholder="Pernyataan ${pernyataanCount}" required>
+                <div class="upload-container" style="margin: 8px 0;">
+                    <label class="upload-btn" style="font-size: 12px; padding: 6px 12px;">
+                        <span class="material-symbols-outlined" style="font-size: 16px;">image</span>
+                        Upload Gambar Pernyataan
+                        <input type="file" name="gambar_pernyataan_${soalId}_${pernyataanCount}" accept="image/*" onchange="previewImage(this, 'preview-pernyataan-${soalId}-${pernyataanCount}')">
+                    </label>
+                    <div id="preview-pernyataan-${soalId}-${pernyataanCount}" class="upload-wrapper" style="display: none;">
+                        <img class="image-preview" src="" alt="Preview">
+                        <button type="button" class="remove-image-btn" onclick="removeImage('preview-pernyataan-${soalId}-${pernyataanCount}', this)">Hapus</button>
+                    </div>
+                </div>
                 <div class="checkbox-group">
                     <div class="checkbox-item">
                         <input type="radio" id="benar_${soalId}_${pernyataanCount}" name="kunci_${soalId}_${pernyataanCount}" value="benar" required>
@@ -1373,6 +1647,17 @@
             pernyataanItem.className = 'pernyataan-item';
             pernyataanItem.innerHTML = `
                 <input type="text" class="pernyataan-input" name="pernyataan_${soalId}[]" placeholder="Pernyataan ${pernyataanCount}" required>
+                <div class="upload-container" style="margin: 8px 0;">
+                    <label class="upload-btn" style="font-size: 12px; padding: 6px 12px;">
+                        <span class="material-symbols-outlined" style="font-size: 16px;">image</span>
+                        Upload Gambar Pernyataan
+                        <input type="file" name="gambar_pernyataan_${soalId}_${pernyataanCount}" accept="image/*" onchange="previewImage(this, 'preview-pernyataan-${soalId}-${pernyataanCount}')">
+                    </label>
+                    <div id="preview-pernyataan-${soalId}-${pernyataanCount}" class="upload-wrapper" style="display: none;">
+                        <img class="image-preview" src="" alt="Preview">
+                        <button type="button" class="remove-image-btn" onclick="removeImage('preview-pernyataan-${soalId}-${pernyataanCount}', this)">Hapus</button>
+                    </div>
+                </div>
                 <div class="checkbox-group">
                     <div class="checkbox-item">
                         <input type="checkbox" id="benar_${soalId}_${pernyataanCount}" name="kunci_${soalId}_${pernyataanCount}_benar" value="benar">
@@ -1404,17 +1689,28 @@
 
         // Tambah soal pertama otomatis saat halaman dimuat
         window.addEventListener('DOMContentLoaded', function() {
-            tambahSoal();
+            if (!document.body.classList.contains('edit-mode')) {
+                tambahSoal();
+            }
         });
 
-        // Form validation
+        // Form validation and submit handler
+        let formSubmitting = false;
+        
         document.getElementById('formSoal').addEventListener('submit', function(e) {
+            // Prevent default form submission
             e.preventDefault();
+            
+            // Prevent double submission
+            if (formSubmitting) {
+                console.log('Form already submitting...');
+                return false;
+            }
             
             const soalCards = document.querySelectorAll('.soal-card');
             if (soalCards.length === 0) {
                 alert('Minimal harus ada 1 soal!');
-                return;
+                return false;
             }
             
             // Validasi setiap soal sudah memilih jenis
@@ -1428,12 +1724,101 @@
                 }
             });
             
-            if (valid) {
+            if (!valid) {
+                return false;
+            }
+            
+            try {
+                formSubmitting = true;
+                console.log('=== FORM SUBMIT - NEW APPROACH ===');
+                
+                // NEW APPROACH: Extract image paths from data attributes and create hidden inputs
+                // Find all preview containers with data-image-path
+                const previewContainers = this.querySelectorAll('[data-image-path][data-input-name]');
+                console.log(`Found ${previewContainers.length} preview containers with image data`);
+                
+                // Create hidden inputs for each image
+                previewContainers.forEach(preview => {
+                    const imagePath = preview.getAttribute('data-image-path');
+                    const inputName = preview.getAttribute('data-input-name');
+                    
+                    if (imagePath && inputName) {
+                        console.log(`Processing: ${inputName}`);
+                        
+                        // Check if file input exists with same name
+                        let fileInput = this.querySelector(`input[type="file"][name="${inputName}"]`);
+                        
+                        if (fileInput) {
+                            // If file input has file selected, skip (use file upload)
+                            if (fileInput.files && fileInput.files.length > 0) {
+                                console.log(`⚠ Skipping ${inputName} - file input has file selected`);
+                                return;
+                            }
+                            
+                            // No file selected, disable file input and use paste image
+                            console.log(`  Disabling file input, using paste image for: ${inputName}`);
+                            fileInput.disabled = true;
+                        }
+                        
+                        // Check if hidden input already exists
+                        let hiddenInput = this.querySelector(`input[type="hidden"][name="${inputName}"]`);
+                        
+                        if (!hiddenInput) {
+                            // Create new hidden input
+                            hiddenInput = document.createElement('input');
+                            hiddenInput.type = 'hidden';
+                            hiddenInput.name = inputName;
+                            this.appendChild(hiddenInput);
+                            console.log(`✓ Created hidden input: ${inputName}`);
+                        }
+                        
+                        hiddenInput.value = imagePath;
+                        console.log(`  ${inputName} = ${imagePath}`);
+                    }
+                });
+                
+                // Verify all hidden inputs
+                console.log('=== VERIFICATION ===');
+                const allGambarInputs = this.querySelectorAll('input[type="hidden"][name*="gambar"]');
+                console.log(`Total hidden gambar inputs in form: ${allGambarInputs.length}`);
+                allGambarInputs.forEach(input => {
+                    console.log(`  ${input.name} = ${input.value}`);
+                });
+                
+                // Submit form using native submit (bypass event listener)
                 console.log('Submitting form...');
-                this.submit(); // Submit form ke server
+                HTMLFormElement.prototype.submit.call(this);
+                
+            } catch (error) {
+                formSubmitting = false;
+                console.error('Form submit error:', error);
+                alert('Terjadi kesalahan: ' + error.message);
+                return false;
             }
         });
 
+        // Debug function to check data attributes
+        function debugDataAttributes() {
+            console.log('=== DEBUG DATA ATTRIBUTES ===');
+            const form = document.getElementById('formSoal');
+            const allElements = form.querySelectorAll('[data-image-path]');
+            
+            console.log(`Found ${allElements.length} elements with data-image-path`);
+            
+            allElements.forEach((el, index) => {
+                console.log(`\n[${index + 1}] Element:`, el.tagName, el.id || el.className);
+                console.log('  data-image-path:', el.getAttribute('data-image-path'));
+                console.log('  data-input-name:', el.getAttribute('data-input-name'));
+                console.log('  Display:', el.style.display);
+            });
+            
+            if (allElements.length === 0) {
+                alert('⚠ Tidak ada data attributes ditemukan!\nPastikan Anda sudah paste gambar terlebih dahulu.');
+            } else {
+                alert(`✓ Found ${allElements.length} elements with image data.\nCheck console for details.`);
+            }
+        }
+        
         // Close sidebar when clicking outside on mobile
         document.addEventListener('click', function(event) {
             const sidebar = document.getElementById('sidebar');
@@ -1445,6 +1830,54 @@
                 }
             }
         });
+
+        function showExistingImage(previewId, imagePath) {
+            if (!imagePath) {
+                console.log('No image path provided for:', previewId);
+                return;
+            }
+            
+            const previewWrapper = document.getElementById(previewId);
+            if (!previewWrapper) {
+                console.warn('❌ Preview wrapper not found:', previewId);
+                return;
+            }
+            
+            const previewImg = previewWrapper.querySelector('.image-preview');
+            if (!previewImg) {
+                console.warn('❌ Preview img not found in:', previewId);
+                return;
+            }
+            
+            previewImg.src = `/storage/${imagePath}`;
+            previewWrapper.style.display = 'block';
+            
+            // NEW APPROACH: Use data attributes instead of hidden inputs
+            // Get proper name from preview ID
+            const parts = previewId.replace('preview-', '').split('-');
+            let finalName = '';
+            
+            if (parts[0] === 'soal') {
+                finalName = 'gambar_soal_' + parts[1];
+            } else if (parts[0] === 'pembahasan') {
+                finalName = 'gambar_pembahasan_' + parts[1];
+            } else if (parts[0] === 'pernyataan') {
+                finalName = 'gambar_pernyataan_' + parts[1] + '_' + parts[2];
+            } else {
+                finalName = 'gambar_pilihan_' + parts[1] + '_' + parts[0];
+            }
+            
+            // Store data in preview wrapper attributes
+            previewWrapper.setAttribute('data-image-path', imagePath);
+            previewWrapper.setAttribute('data-input-name', finalName);
+            
+            console.log('✓ Existing image data stored:', {
+                previewId: previewId,
+                inputName: finalName,
+                path: imagePath,
+                elementFound: true
+            });
+        }
 
         // Image preview function
         function previewImage(input, previewId) {
@@ -1492,5 +1925,46 @@
             previewWrapper.style.display = 'none';
         }
     </script>
+    
+    <!-- Image Zoom Modal -->
+    <div id="imageZoomModal" class="image-zoom-modal" onclick="closeImageZoom()">
+        <span class="image-zoom-close">&times;</span>
+        <img id="zoomedImage" class="image-zoom-content" src="" alt="Zoomed Image">
+    </div>
+
+    <script>
+        // Image Zoom Functionality
+        function openImageZoom(imageSrc) {
+            const modal = document.getElementById('imageZoomModal');
+            const zoomedImg = document.getElementById('zoomedImage');
+            
+            zoomedImg.src = imageSrc;
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeImageZoom() {
+            const modal = document.getElementById('imageZoomModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Add click event to all image previews
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('image-preview') && e.target.src) {
+                openImageZoom(e.target.src);
+            }
+        });
+
+        // Close on ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeImageZoom();
+            }
+        });
+    </script>
+    
+    <!-- Paste Image Upload Script -->
+    <script src="{{ asset('js/paste-image-upload.js') }}"></script>
 </body>
 </html>

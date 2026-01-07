@@ -5,7 +5,10 @@
             <div class="logo-icon">
                 <span class="material-symbols-outlined">school</span>
             </div>
-            <div class="logo-text">SIMULASI TKA - SDN GU 09</div>
+            <div class="logo-text">
+                <span style="letter-spacing: 0.15em;">SIMULASI TKA</span><br>
+                <span style="font-size: 13px;">SDN GROGOL UTARA 09</span>
+            </div>
         </div>
     </div>
 
@@ -20,8 +23,16 @@
                 <span class="material-symbols-outlined">group</span>
                 <span class="menu-item-text">User Management</span>
             </a>
+            <a href="/rekap-nilai" class="menu-item {{ request()->is('rekap-nilai*') ? 'active' : '' }}">
+                <span class="material-symbols-outlined">grading</span>
+                <span class="menu-item-text">Rekap Nilai</span>
+            </a>
+            <a href="/simulasi/exam-list" class="menu-item {{ request()->is('simulasi/exam-list') || request()->is('simulasi/*/student-status') ? 'active' : '' }}">
+                <span class="material-symbols-outlined">monitor_heart</span>
+                <span class="menu-item-text">Monitor Siswa</span>
+            </a>
             <div class="menu-item {{ request()->is('soal*') || request()->is('simulasi*') ? 'expanded' : '' }}" onclick="toggleSubmenu(event)">
-                <span class="material-symbols-outlined">quiz</span>
+                <span class="material-symbols-outlined">menu_book</span>
                 <span class="menu-item-text">Simulasi TKA</span>
                 <span class="material-symbols-outlined menu-item-arrow" style="font-size: 18px;">expand_more</span>
             </div>
@@ -38,19 +49,10 @@
                 <a href="/simulasi/token" class="submenu-item {{ request()->is('simulasi/token') ? 'active' : '' }}">
                     <span class="menu-item-text">Generate Token</span>
                 </a>
+                <a href="/simulasi/exam-list" class="submenu-item {{ request()->is('simulasi/exam-list') || request()->is('simulasi/*/student-status') ? 'active' : '' }}">
+                    <span class="menu-item-text">Daftar Login Peserta</span>
+                </a>
             </div>
-        </div>
-
-        <div class="menu-section">
-            <div class="menu-section-title">Help</div>
-            <a href="#" class="menu-item">
-                <span class="material-symbols-outlined">settings</span>
-                <span class="menu-item-text">Setting</span>
-            </a>
-            <a href="#" class="menu-item">
-                <span class="material-symbols-outlined">help</span>
-                <span class="menu-item-text">Support</span>
-            </a>
         </div>
     </nav>
 

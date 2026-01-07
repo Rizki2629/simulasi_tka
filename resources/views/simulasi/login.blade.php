@@ -15,7 +15,7 @@
 
         body {
             font-family: 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #702637 0%, #8B3347 100%);
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -33,7 +33,7 @@
         }
 
         .login-header {
-            background: #702637;
+            background: #1e3a8a;
             color: white;
             padding: 40px 30px;
             text-align: center;
@@ -84,8 +84,8 @@
 
         .form-input:focus {
             outline: none;
-            border-color: #702637;
-            box-shadow: 0 0 0 3px rgba(112, 38, 55, 0.1);
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
         .form-input::placeholder {
@@ -95,7 +95,7 @@
         .btn-login {
             width: 100%;
             padding: 14px;
-            background: #702637;
+            background: #2563eb;
             color: white;
             border: none;
             border-radius: 10px;
@@ -107,9 +107,9 @@
         }
 
         .btn-login:hover {
-            background: #8B3347;
+            background: #3b82f6;
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(112, 38, 55, 0.3);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3);
         }
 
         .btn-login:active {
@@ -143,7 +143,7 @@
         }
 
         .back-link a {
-            color: #702637;
+            color: #2563eb;
             text-decoration: none;
             font-weight: 500;
         }
@@ -168,7 +168,7 @@
         }
 
         .input-icon .material-symbols-outlined:hover {
-            color: #702637;
+            color: #2563eb;
         }
     </style>
 </head>
