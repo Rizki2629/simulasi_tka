@@ -11,17 +11,36 @@ use App\Models\MataPelajaran;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Services\SoalFirestoreRepository;
+use App\Services\SoalViewAdapter;
+use App\Services\SoalFirestoreSyncService;
 
 class SoalController extends Controller
 {
     public function index()
     {
-        // Get all soal from database with relationships and count simulasi usage
-        $soals = Soal::with(['mataPelajaran', 'pilihanJawaban'])
+        try {
+            $rows = app(SoalFirestoreRepository::class)->listAll();
+            if (!empty($rows)) {
+                $soals = app(SoalViewAdapter::class)->hydrateSoalList($rows);
+                return view('soal.index', compact('soals'));
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Firestore soal.index fallback to DB: ' . $e->getMessage());
+
+            $soals = Soal::with(['mataPelajaran', 'pilihanJawaban', 'creator'])
+                        ->withCount('simulasiSoal')
+                        ->orderBy('created_at', 'desc')
+                        ->get();
+
+            return view('soal.index', compact('soals'));
+        }
+
+        $soals = Soal::with(['mataPelajaran', 'pilihanJawaban', 'creator'])
                     ->withCount('simulasiSoal')
                     ->orderBy('created_at', 'desc')
                     ->get();
-        
+
         return view('soal.index', compact('soals'));
     }
 
@@ -89,6 +108,12 @@ class SoalController extends Controller
 
             DB::commit();
 
+            try {
+                app(SoalFirestoreSyncService::class)->sync($soal);
+            } catch (\Throwable $e) {
+                \Log::warning('Firestore sync after soal.store failed: ' . $e->getMessage());
+            }
+
             return redirect()->route('soal.index')->with('success', 'Paket soal berhasil ditambahkan dengan ' . count($formIds) . ' pertanyaan');
 
         } catch (\Exception $e) {
@@ -103,6 +128,18 @@ class SoalController extends Controller
 
     public function show($id)
     {
+        $id = (int) $id;
+
+        try {
+            $data = app(SoalFirestoreRepository::class)->find($id);
+            if ($data) {
+                $soal = app(SoalViewAdapter::class)->hydrateSoal($data);
+                return view('soal.show', compact('soal'));
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Firestore soal.show fallback to DB: ' . $e->getMessage());
+        }
+
         $soal = Soal::with(['mataPelajaran', 'pilihanJawaban', 'creator', 'subSoal.pilihanJawaban'])->findOrFail($id);
         return view('soal.show', compact('soal'));
     }
@@ -193,6 +230,12 @@ class SoalController extends Controller
 
             DB::commit();
 
+            try {
+                app(SoalFirestoreSyncService::class)->sync($soal);
+            } catch (\Throwable $e) {
+                \Log::warning('Firestore sync after soal.update failed: ' . $e->getMessage());
+            }
+
             $totalSoal = count($formIds);
             return redirect()->route('soal.index')->with('success', "Soal berhasil diupdate dengan {$totalSoal} pertanyaan");
 
@@ -224,6 +267,12 @@ class SoalController extends Controller
             
             // Delete soal (cascade will delete pilihan_jawaban)
             $soal->delete();
+
+            try {
+                app(SoalFirestoreRepository::class)->delete((int) $id);
+            } catch (\Throwable $e) {
+                \Log::warning('Firestore delete after soal.destroy failed: ' . $e->getMessage());
+            }
             
             return response()->json([
                 'success' => true,

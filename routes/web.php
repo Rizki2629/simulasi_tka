@@ -7,6 +7,7 @@ use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\RekapNilaiController;
 use App\Http\Controllers\SoalController;
 use App\Http\Controllers\SimulasiController;
+use App\Http\Controllers\FirebaseTestController;
 
 // Public routes - redirect to login if not authenticated
 Route::get('/', function () {
@@ -82,3 +83,9 @@ Route::post('/simulasi/submit-answer', [SimulasiController::class, 'submitAnswer
 Route::post('/simulasi/finish-exam', [SimulasiController::class, 'finishExam'])->name('simulasi.finish.exam');
 Route::get('/simulasi/review', [SimulasiController::class, 'review'])->name('simulasi.review');
 Route::post('/simulasi/finish-review', [SimulasiController::class, 'finishReview'])->name('simulasi.finish-review');
+
+// Firebase Test Routes - Public (untuk testing)
+Route::get('/firebase/test', [FirebaseTestController::class, 'testFirebase'])->name('firebase.test');
+Route::get('/firebase/soal', [FirebaseTestController::class, 'getSoal'])->name('firebase.soal');
+Route::get('/firebase/soal/mapel/{id}', [FirebaseTestController::class, 'getSoalByMapel'])->name('firebase.soal.mapel');
+Route::post('/firebase/soal', [FirebaseTestController::class, 'storeSoal'])->name('firebase.soal.store');

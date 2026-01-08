@@ -14,18 +14,26 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $credentials = $request->validate([
+        $validated = $request->validate([
             'email' => 'required|string',
             'password' => 'required',
         ]);
 
-        if (Auth::attempt($credentials, $request->filled('remember'))) {
+        $identifier = $validated['email'];
+        $password = $validated['password'];
+
+        $remember = $request->filled('remember');
+
+        $ok = Auth::attempt(['email' => $identifier, 'password' => $password], $remember)
+            || Auth::attempt(['nisn' => $identifier, 'password' => $password], $remember);
+
+        if ($ok) {
             $request->session()->regenerate();
             return redirect()->intended('/');
         }
 
         return back()->withErrors([
-            'email' => 'Username atau password salah.',
+            'email' => 'Username/NISN atau password salah.',
         ])->onlyInput('email');
     }
 

@@ -22,3 +22,12 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Local-only secrets/data
+/*-firebase-adminsdk-*.json
+/sdngu09pagi-3de93-firebase-adminsdk-fbsvc-20ae7ab229.json
+/database/database.sqlite
+
+# Local DB dumps
+/simulasi_tka.sql
+/db/*.sql
