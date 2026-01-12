@@ -18,19 +18,45 @@
         </div>
         @endif
     </div>
-    @if(isset($showAvatar) && $showAvatar)
-    <div class="header-right">
-        <div class="user-avatar-header">{{ $avatarInitials ?? 'FS' }}</div>
-    </div>
-    @elseif(isset($showSearch) && $showSearch)
-    <div class="header-right">
-        <div class="header-icon">
-            <span class="material-symbols-outlined">person</span>
+    @php
+        $showHeaderRight = (isset($showAvatar) && $showAvatar) || (isset($showSearch) && $showSearch);
+        $isAuthenticated = auth()->check();
+    @endphp
+    @if($showHeaderRight || $isAuthenticated)
+        <div class="header-right">
+            @if(isset($showAvatar) && $showAvatar)
+                <div class="user-avatar-header">{{ $avatarInitials ?? 'FS' }}</div>
+            @elseif(isset($showSearch) && $showSearch)
+                <div class="header-icon">
+                    <span class="material-symbols-outlined">person</span>
+                </div>
+                <div class="header-icon">
+                    <span class="material-symbols-outlined">notifications</span>
+                    <span class="badge"></span>
+                </div>
+            @endif
+
+            @auth
+                <a href="#" class="header-icon" onclick="confirmAdminLogout(event)" aria-label="Logout">
+                    <span class="material-symbols-outlined">logout</span>
+                </a>
+
+                <form id="admin-logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                    @csrf
+                </form>
+            @endauth
         </div>
-        <div class="header-icon">
-            <span class="material-symbols-outlined">notifications</span>
-            <span class="badge"></span>
-        </div>
-    </div>
     @endif
 </header>
+
+@auth
+    <script>
+        function confirmAdminLogout(event) {
+            event.preventDefault();
+
+            if (confirm('Apakah Anda yakin ingin logout?')) {
+                document.getElementById('admin-logout-form')?.submit();
+            }
+        }
+    </script>
+@endauth

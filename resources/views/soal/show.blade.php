@@ -1,71 +1,14 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detail Soal - Simulasi TKA</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+@extends('layouts.app')
+
+@section('title', 'Detail Soal - Simulasi TKA')
+
+@php
+    $pageTitle = 'Detail Soal: ' . ($soal->kode_soal ?? '-');
+    $breadcrumb = 'Simulasi TKA';
+@endphp
+
+@push('styles')
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #f5f5f5;
-            color: #333;
-        }
-
-        .container {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar Styles (Consistent with Index) */
-        .sidebar {
-            width: 280px;
-            background: #702637;
-            color: white;
-            position: fixed;
-            height: 100vh;
-            overflow-y: auto;
-            transition: transform 0.3s ease;
-            z-index: 1000;
-        }
-
-        /* ... Reuse sidebar styles from index ... */
-        .sidebar-header { padding: 24px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-        .logo { display: flex; align-items: center; gap: 12px; }
-        .logo-icon { width: 40px; height: 40px; background: white; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #702637; font-weight: bold; font-size: 20px; }
-        .logo-text { font-size: 16px; font-weight: 600; line-height: 1.2; }
-        .sidebar-nav { padding: 20px 0; }
-        .menu-item { display: flex; align-items: center; gap: 12px; padding: 12px 20px; color: rgba(255, 255, 255, 0.8); text-decoration: none; transition: all 0.2s ease; }
-        .menu-item:hover { background: rgba(255, 255, 255, 0.08); color: white; }
-        .menu-item.active { background: rgba(255, 255, 255, 0.12); color: white; }
-        .menu-item-text { flex: 1; font-size: 14px; }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            margin-left: 280px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .header {
-            background: white;
-            padding: 16px 32px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
         .content {
             flex: 1;
             padding: 32px;
@@ -79,17 +22,19 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
         .page-title {
-            font-size: 28px;
+            font-size: 22px;
             font-weight: 700;
             color: #1a1a1a;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .page-subtitle {
-            font-size: 16px;
+            font-size: 14px;
             color: #666;
         }
 
@@ -292,42 +237,25 @@
             color: #999;
         }
     </style>
-</head>
-<body>
-    <div class="container">
-        <!-- Sidebar Code reused mostly from Index -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">
-                     <span class="material-symbols-outlined" style="color: white; font-size: 32px;">school</span>
-                     <div class="logo-text">SIMULASI TKA<br>SDN GU 09</div>
-                </div>
+@endpush
+
+@section('content')
+    <div class="content">
+        <div class="page-header">
+            <div>
+                <div class="page-subtitle">Detail Soal</div>
+                <div class="page-title">{{ $soal->kode_soal }}</div>
             </div>
-            <nav class="sidebar-nav">
-                <a href="/soal" class="menu-item">
-                    <span class="material-symbols-outlined">arrow_back</span>
-                    <span class="menu-item-text">Kembali ke Daftar</span>
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <a href="/soal" class="btn-secondary">Kembali</a>
+                <a href="/soal/{{ $soal->id }}/edit" class="btn-secondary btn-edit" style="color: white;">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
+                    Edit Soal
                 </a>
-            </nav>
-        </aside>
+            </div>
+        </div>
 
-        <main class="main-content">
-            <header class="header">
-                <div>
-                    <div style="font-size: 12px; color: #999;">Detail Soal</div>
-                    <div style="font-size: 16px; font-weight: 600;">{{ $soal->kode_soal }}</div>
-                </div>
-                <div style="display: flex; gap: 12px;">
-                    <a href="/soal" class="btn-secondary">Kembali</a>
-                    <a href="/soal/{{ $soal->id }}/edit" class="btn-secondary btn-edit" style="color: white;">
-                        <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
-                        Edit Soal
-                    </a>
-                </div>
-            </header>
-
-            <div class="content">
-                <div class="detail-card">
+        <div class="detail-card">
                     <div class="meta-grid">
                         <div class="meta-item">
                             <span class="meta-label">Mata Pelajaran</span>
@@ -445,9 +373,6 @@
                             @endif
                         </div>
                     @endif
-                </div>
-            </div>
-        </main>
+        </div>
     </div>
-</body>
-</html>
+@endsection

@@ -1,10 +1,15 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $simulasi->nama_simulasi }} - Rekap Nilai</title>
-    @include('layouts.styles')
+@extends('layouts.app')
+
+@section('title', $simulasi->nama_simulasi . ' - Rekap Nilai')
+
+@php
+    $pageTitle = $simulasi->nama_simulasi;
+    $breadcrumb = 'Rekap Nilai';
+    $showAvatar = false;
+    $showSearch = false;
+@endphp
+
+@push('styles')
     <style>
         .back-btn {
             display: inline-flex;
@@ -261,20 +266,10 @@
             font-weight: 600;
         }
     </style>
-</head>
-<body>
-    <div class="dashboard-container">
-        @include('layouts.sidebar')
+@endpush
 
-        <main class="main-content">
-            @include('layouts.header', [
-                'pageTitle' => $simulasi->nama_simulasi, 
-                'breadcrumb' => 'Rekap Nilai',
-                'showAvatar' => true,
-                'avatarInitials' => 'MD'
-            ])
-
-            <div class="content">
+@section('content')
+    <div class="content">
                 <a href="{{ route('rekap-nilai.index') }}" class="back-btn">
                     <span class="material-symbols-outlined">arrow_back</span>
                     Kembali ke Daftar Ujian
@@ -400,11 +395,10 @@
                     </div>
                     @endif
                 </div>
-            </div>
-        </main>
     </div>
+@endsection
 
-    @include('layouts.scripts')
+@push('scripts')
     <script>
         function toggleFilterMenu() {
             const menu = document.getElementById('filterMenu');
@@ -429,5 +423,4 @@
             });
         }
     </script>
-</body>
-</html>
+@endpush

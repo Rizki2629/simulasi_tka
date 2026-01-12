@@ -1,10 +1,14 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Status Siswa - {{ $simulasi->nama_simulasi }}</title>
-    @include('layouts.styles')
+@extends('layouts.app')
+
+@section('title', 'Status Siswa - ' . $simulasi->nama_simulasi)
+@php
+    $pageTitle = 'Status Siswa';
+    $breadcrumb = $simulasi->nama_simulasi;
+    $showAvatar = false;
+    $showSearch = false;
+@endphp
+
+@push('styles')
     <style>
         .back-btn {
             display: inline-flex;
@@ -267,20 +271,10 @@
             font-size: 14px;
         }
     </style>
-</head>
-<body>
-    <div class="dashboard-container">
-        @include('layouts.sidebar')
+@endpush
 
-        <main class="main-content">
-            @include('layouts.header', [
-                'pageTitle' => 'Status Siswa', 
-                'breadcrumb' => $simulasi->nama_simulasi,
-                'showAvatar' => true,
-                'avatarInitials' => 'MD'
-            ])
-
-            <div class="content">
+@section('content')
+    <div class="content">
                 <a href="{{ route('simulasi.exam.list') }}" class="back-btn">
                     <span class="material-symbols-outlined">arrow_back</span>
                     Kembali ke Daftar Ujian
@@ -381,7 +375,7 @@
                                             {{ $data->statusText }}
                                         </span>
                                     </td>
-                                    <td>{{ $data->session ? $data->session->started_at?->format('d M Y, H:i') : '-' }}</td>
+                                    <td>{{ data_get($data->session, 'started_at')?->format('d M Y, H:i') ?? '-' }}</td>
                                     <td>{{ $data->nilai ? $data->nilai->created_at->format('d M Y, H:i') : '-' }}</td>
                                     <td>
                                         <div class="action-btns" style="justify-content: center;">
@@ -412,11 +406,10 @@
                         </table>
                     </div>
                 </div>
-            </div>
-        </main>
     </div>
+@endsection
 
-    @include('layouts.scripts')
+@push('scripts')
     <script>
         function toggleFilterMenu() {
             const menu = document.getElementById('filterMenu');
@@ -495,5 +488,4 @@
             });
         }
     </script>
-</body>
-</html>
+@endpush

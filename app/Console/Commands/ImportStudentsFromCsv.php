@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 class ImportStudentsFromCsv extends Command
@@ -16,9 +17,10 @@ class ImportStudentsFromCsv extends Command
      * @var string
      */
     protected $signature = 'import:students
-                            {path? : Path file CSV (default: DATA SISWA KELAS 6.csv)}
+                            {path : Path file CSV}
                             {--delete-old : Hapus semua data siswa lama sebelum import}
-                            {--password=password123 : Password default untuk siswa}';
+                            {--password=password123 : Password default untuk siswa}
+                            {--force : Lewati konfirmasi hapus data}';
 
     /**
      * The console command description.
@@ -32,7 +34,8 @@ class ImportStudentsFromCsv extends Command
      */
     public function handle()
     {
-        $file = $this->argument('path') ?: base_path('DATA SISWA KELAS 6.csv');
+        /** @var string $file */
+        $file = (string) $this->argument('path');
 
         if (!file_exists($file)) {
             $this->error("File not found: $file");
@@ -40,6 +43,20 @@ class ImportStudentsFromCsv extends Command
         }
 
         if ($this->option('delete-old')) {
+            $studentCount = User::query()->whereIn('role', ['siswa', 'student'])->count();
+            if ($studentCount > 0 && ! $this->option('force')) {
+                $confirmed = $this->confirm(
+                    "Akan menghapus {$studentCount} data siswa lama (role=siswa). Lanjutkan?",
+                    false
+                );
+
+                if (! $confirmed) {
+                    $this->info('Dibatalkan. Tidak ada data yang diubah.');
+                    fclose($handle);
+                    return;
+                }
+            }
+
             $this->deleteOldStudents();
         }
 
@@ -95,6 +112,7 @@ class ImportStudentsFromCsv extends Command
             $nama_ayah = trim((string) ($data[18] ?? ''));
             $nama_ibu = trim((string) ($data[19] ?? ''));
             $rombel = trim((string) ($data[20] ?? ''));
+            $rombel = $this->normalizeRombel($rombel);
 
             if ($nisn === '') {
                 $this->warn('Skip baris: NISN kosong untuk nama: ' . ($nama !== '' ? $nama : '(tanpa nama)'));
@@ -182,15 +200,25 @@ class ImportStudentsFromCsv extends Command
             }
 
             // Hapus data terkait (jaga-jaga jika FK SQLite tidak aktif / ada FK rusak)
-            DB::table('exam_sessions')->whereIn('user_id', $studentIds)->delete();
-            DB::table('nilai')->whereIn('user_id', $studentIds)->delete();
-            DB::table('jawaban_peserta')
-                ->whereIn('simulasi_peserta_id', function ($q) use ($studentIds) {
-                    $q->select('id')->from('simulasi_peserta')->whereIn('user_id', $studentIds);
-                })
-                ->delete();
-            DB::table('simulasi_peserta')->whereIn('user_id', $studentIds)->delete();
-            DB::table('sessions')->whereIn('user_id', $studentIds)->delete();
+            if (Schema::hasTable('exam_sessions')) {
+                DB::table('exam_sessions')->whereIn('user_id', $studentIds)->delete();
+            }
+            if (Schema::hasTable('nilai')) {
+                DB::table('nilai')->whereIn('user_id', $studentIds)->delete();
+            }
+            if (Schema::hasTable('jawaban_peserta') && Schema::hasTable('simulasi_peserta')) {
+                DB::table('jawaban_peserta')
+                    ->whereIn('simulasi_peserta_id', function ($q) use ($studentIds) {
+                        $q->select('id')->from('simulasi_peserta')->whereIn('user_id', $studentIds);
+                    })
+                    ->delete();
+            }
+            if (Schema::hasTable('simulasi_peserta')) {
+                DB::table('simulasi_peserta')->whereIn('user_id', $studentIds)->delete();
+            }
+            if (Schema::hasTable('sessions')) {
+                DB::table('sessions')->whereIn('user_id', $studentIds)->delete();
+            }
             if (count($studentEmails) > 0) {
                 DB::table('password_reset_tokens')->whereIn('email', $studentEmails)->delete();
             }
@@ -202,5 +230,23 @@ class ImportStudentsFromCsv extends Command
                 DB::statement('PRAGMA foreign_keys = ON;');
             }
         }
+    }
+
+    private function normalizeRombel(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '' || $value === '-') {
+            return '';
+        }
+
+        // CSV berisi seperti "KELAS 6A"; di UI sudah ada prefix "Kelas ",
+        // jadi simpan hanya "6A" agar tidak menjadi "Kelas Kelas 6A".
+        while (preg_match('/^\s*kelas\s+/i', $value)) {
+            $value = preg_replace('/^\s*kelas\s+/i', '', $value) ?? $value;
+            $value = trim($value);
+        }
+
+        $value = preg_replace('/\s+/', ' ', $value) ?? $value;
+        return strtoupper(trim($value));
     }
 }

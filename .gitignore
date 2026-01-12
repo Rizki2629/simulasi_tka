@@ -26,6 +26,7 @@ Thumbs.db
 # Local-only secrets/data
 /*-firebase-adminsdk-*.json
 /sdngu09pagi-3de93-firebase-adminsdk-fbsvc-20ae7ab229.json
+/storage/app/firebase/*.json
 /database/database.sqlite
 
 # Local DB dumps

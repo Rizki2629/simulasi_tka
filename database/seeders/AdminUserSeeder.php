@@ -18,6 +18,7 @@ class AdminUserSeeder extends Seeder
             $admin->update([
                 'name' => 'Admin',
                 'password' => Hash::make('admin'),
+                'role' => 'admin',
             ]);
             echo "Admin user updated successfully!\n";
         } else {
@@ -26,6 +27,7 @@ class AdminUserSeeder extends Seeder
                 'name' => 'Admin',
                 'email' => 'admin',
                 'password' => Hash::make('admin'),
+                'role' => 'admin',
             ]);
             echo "Admin user created successfully!\n";
         }

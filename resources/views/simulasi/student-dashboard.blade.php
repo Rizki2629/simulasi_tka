@@ -305,9 +305,12 @@
             <a href="{{ route('simulasi.riwayat.nilai') }}" style="color: #0284c7; text-decoration: none; display: flex; align-items: center; margin-right: 16px;" title="Riwayat Nilai">
                 <span class="material-symbols-outlined" style="font-size: 20px;">assessment</span>
             </a>
-            <a href="/simulasi/student-logout" style="color: #0284c7; text-decoration: none; display: flex; align-items: center;">
-                <span class="material-symbols-outlined" style="font-size: 20px;">logout</span>
-            </a>
+            <form method="POST" action="{{ route('simulasi.student.logout') }}" style="display: inline-flex; align-items: center; margin: 0;">
+                @csrf
+                <button type="submit" style="color: #0284c7; background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center;" title="Logout" aria-label="Logout">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">logout</span>
+                </button>
+            </form>
         </div>
     </nav>
 

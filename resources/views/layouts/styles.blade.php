@@ -27,21 +27,23 @@
         height: 100vh;
         left: 0;
         top: 0;
-        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
         transition: all 0.3s ease;
         z-index: 1000;
         box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
     }
 
-    .sidebar::-webkit-scrollbar {
+    .sidebar-menu::-webkit-scrollbar {
         width: 6px;
     }
 
-    .sidebar::-webkit-scrollbar-track {
+    .sidebar-menu::-webkit-scrollbar-track {
         background: rgba(255, 255, 255, 0.05);
     }
 
-    .sidebar::-webkit-scrollbar-thumb {
+    .sidebar-menu::-webkit-scrollbar-thumb {
         background: rgba(255, 255, 255, 0.2);
         border-radius: 3px;
     }
@@ -82,6 +84,8 @@
 
     .sidebar-menu {
         padding: 20px 0;
+        flex: 1;
+        overflow-y: auto;
     }
 
     .menu-section {
@@ -157,15 +161,21 @@
         transition: all 0.2s ease;
     }
 
+    /* Ensure submenu styling is consistent across pages that still carry old CSS overrides */
+    .submenu-item::before {
+        content: none !important;
+        display: none !important;
+    }
+
     .submenu-item:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
+        background: rgba(255, 255, 255, 0.1) !important;
+        color: white !important;
     }
 
     .submenu-item.active {
-        background: rgba(255, 255, 255, 0.15);
-        color: white;
-        font-weight: 500;
+        background: rgba(255, 255, 255, 0.15) !important;
+        color: white !important;
+        font-weight: 500 !important;
     }
 
     .sidebar-footer {

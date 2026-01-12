@@ -1,10 +1,13 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Simulasi TKA</title>
-    @include('layouts.styles')
+@extends('layouts.app')
+
+@section('title', 'Dashboard - Simulasi TKA')
+
+@php
+    $pageTitle = 'Dashboard';
+    $showSearch = true;
+@endphp
+
+@push('styles')
     <style>
         /* Stats Cards */
         .stats-grid {
@@ -97,74 +100,62 @@
             }
         }
     </style>
-</head>
-<body>
-    <div class="dashboard-container">
-        @include('layouts.sidebar')
+@endpush
 
-        <!-- Main Content -->
-        <main class="main-content">
-            @include('layouts.header', ['pageTitle' => 'Dashboard', 'showSearch' => true])
+@section('content')
+    <div class="content">
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">Selamat datang di dashboard Simulasi TKA</p>
 
-            <!-- Content -->
-            <div class="content">
-                <h1 class="page-title">Dashboard</h1>
-                <p class="page-subtitle">Selamat datang di dashboard Simulasi TKA</p>
-
-                <!-- Stats Grid -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div>
-                                <div class="stat-value">0</div>
-                                <div class="stat-label">Total Soal</div>
-                            </div>
-                            <div class="stat-icon primary">
-                                <span class="material-symbols-outlined">quiz</span>
-                            </div>
-                        </div>
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-value">0</div>
+                        <div class="stat-label">Total Soal</div>
                     </div>
-
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div>
-                                <div class="stat-value">0</div>
-                                <div class="stat-label">Soal Terjawab</div>
-                            </div>
-                            <div class="stat-icon primary">
-                                <span class="material-symbols-outlined">task_alt</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div>
-                                <div class="stat-value">0%</div>
-                                <div class="stat-label">Progress</div>
-                            </div>
-                            <div class="stat-icon primary">
-                                <span class="material-symbols-outlined">trending_up</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div>
-                                <div class="stat-value">0</div>
-                                <div class="stat-label">Nilai Rata-rata</div>
-                            </div>
-                            <div class="stat-icon primary">
-                                <span class="material-symbols-outlined">grade</span>
-                            </div>
-                        </div>
+                    <div class="stat-icon primary">
+                        <span class="material-symbols-outlined">quiz</span>
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
 
-    @include('layouts.scripts')
-</body>
-</html>
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-value">0</div>
+                        <div class="stat-label">Soal Terjawab</div>
+                    </div>
+                    <div class="stat-icon primary">
+                        <span class="material-symbols-outlined">task_alt</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-value">0%</div>
+                        <div class="stat-label">Progress</div>
+                    </div>
+                    <div class="stat-icon primary">
+                        <span class="material-symbols-outlined">trending_up</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-value">0</div>
+                        <div class="stat-label">Nilai Rata-rata</div>
+                    </div>
+                    <div class="stat-icon primary">
+                        <span class="material-symbols-outlined">grade</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection

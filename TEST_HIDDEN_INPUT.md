@@ -48,9 +48,16 @@ console.log('Active element:', document.activeElement);
 ```
 
 ### 4. Setelah Submit
-Jalankan test script untuk cek database:
+Gunakan Tinker untuk cek nilai yang tersimpan di database:
+
 ```bash
-php test_check_soal.php
+php artisan tinker
+```
+
+Lalu jalankan:
+
+```php
+App\Models\Soal::latest()->first();
 ```
 
 ## Expected Results
@@ -59,7 +66,7 @@ php test_check_soal.php
 1. Hidden input terdeteksi dengan nama `gambar_soal_1`, `gambar_pilihan_1_a`, atau `gambar_pernyataan_1_2`
 2. Value berisi path seperti `soal_images/paste_xxxxx.png`
 3. Hidden input berada di dalam `<form id="formSoal">`
-4. Setelah submit, `test_check_soal.php` menampilkan gambar path di database
+4. Setelah submit, hasil query Tinker menampilkan path gambar di database
 5. File exists: YES
 
 ### ❌ Failure Indicators:
@@ -78,7 +85,7 @@ Get-ChildItem "storage\app\public\soal_images" | Sort-Object LastWriteTime -Desc
 
 ### Cek Database
 ```powershell
-php test_check_soal.php
+php artisan tinker
 ```
 
 ### Cek Laravel Log

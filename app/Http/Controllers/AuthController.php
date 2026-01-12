@@ -24,8 +24,8 @@ class AuthController extends Controller
 
         $remember = $request->filled('remember');
 
-        $ok = Auth::attempt(['email' => $identifier, 'password' => $password], $remember)
-            || Auth::attempt(['nisn' => $identifier, 'password' => $password], $remember);
+        // Admin/Guru login should use email. Student login is handled via /simulasi/login.
+        $ok = Auth::attempt(['email' => $identifier, 'password' => $password], $remember);
 
         if ($ok) {
             $request->session()->regenerate();

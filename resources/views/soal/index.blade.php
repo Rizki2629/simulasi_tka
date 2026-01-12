@@ -1,122 +1,433 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar Soal - Simulasi TKA</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+@extends('layouts.app')
+
+@section('title', 'Daftar Soal - Simulasi TKA')
+
+@php
+    $pageTitle = 'Daftar Soal';
+    $breadcrumb = 'Simulasi TKA';
+@endphp
+
+@push('styles')
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        .content {
+            flex: 1;
+            padding: 32px;
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        .page-header {
+            margin-bottom: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            font-size: 16px;
+            color: #666;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: #702637;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background: #5a1e2d;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(112, 38, 55, 0.3);
+        }
+
+        /* Filter Section */
+        .filter-section {
+            background: white;
+            padding: 20px 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-item {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #702637;
+            box-shadow: 0 0 0 3px rgba(112, 38, 55, 0.1);
+        }
+
+        .search-box {
+            flex: 2;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 14px 10px 44px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #702637;
+            box-shadow: 0 0 0 3px rgba(112, 38, 55, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+        }
+
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .soal-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .soal-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            border-color: #702637;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 16px;
+        }
+
+        .card-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: #f0e6e9;
+            color: #702637;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .card-menu {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            color: #999;
+            transition: all 0.2s ease;
+        }
+
+        .card-menu:hover {
             background: #f5f5f5;
             color: #333;
         }
 
-        .container {
+        .card-kode {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 8px;
             display: flex;
-            min-height: 100vh;
+            align-items: center;
+            gap: 8px;
         }
 
-        /* Sidebar Styles */
-        .sidebar {
-            width: 280px;
-            background: #702637;
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: linear-gradient(135deg, #10b981, #059669);
             color: white;
+        }
+
+        .status-available {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+        }
+
+        .flash-notification {
             position: fixed;
-            height: 100vh;
-            overflow-y: auto;
-            transition: transform 0.3s ease;
-            z-index: 1000;
+            top: 20px;
+            right: 20px;
+            min-width: 300px;
+            max-width: 500px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            z-index: 9999;
+            animation: slideInRight 0.3s ease-out;
         }
 
-        .sidebar-header {
-            padding: 24px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
-        .logo {
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .flash-notification.success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .flash-notification.error {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .flash-content {
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 8px;
+            flex: 1;
         }
 
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: white;
-            border-radius: 10px;
+        .flash-content .material-symbols-outlined {
+            font-size: 24px;
+        }
+
+        .flash-close {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #702637;
-            font-weight: bold;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        .flash-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .flash-close .material-symbols-outlined {
             font-size: 20px;
         }
 
-        .logo-text {
+        .card-mapel {
             font-size: 16px;
+            color: #702637;
             font-weight: 600;
-            line-height: 1.2;
+            margin-bottom: 12px;
         }
 
-        .sidebar-nav {
-            padding: 20px 0;
+        .card-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #f0f0f0;
         }
 
-        .menu-section {
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .info-item .material-symbols-outlined {
+            font-size: 18px;
+            color: #999;
+        }
+
+        .card-footer {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-card {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 16px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .btn-card:hover {
+            background: #f5f5f5;
+            border-color: #702637;
+            color: #702637;
+        }
+
+        .btn-card.btn-edit {
+            color: #2563eb;
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .btn-card.btn-edit:hover {
+            background: #2563eb;
+            color: white;
+        }
+
+        .btn-card.btn-delete {
+            color: #dc2626;
+            border-color: #dc2626;
+            background: #fef2f2;
+        }
+
+        .btn-card.btn-delete:hover {
+            background: #dc2626;
+            color: white;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .empty-icon {
+            font-size: 80px;
+            color: #e0e0e0;
+            margin-bottom: 16px;
+        }
+
+        .empty-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .empty-text {
+            font-size: 14px;
+            color: #999;
             margin-bottom: 24px;
         }
 
-        .menu-section-title {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: rgba(255, 255, 255, 0.5);
-            padding: 8px 20px;
-            font-weight: 600;
-        }
+        /* Responsive */
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
 
-        .menu-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 20px;
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            position: relative;
-        }
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
 
-        .menu-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            color: white;
-        }
+            .filter-row {
+                flex-direction: column;
+            }
 
-        .menu-item.active {
-            background: rgba(255, 255, 255, 0.12);
-            color: white;
+            .filter-item,
+            .search-box {
+                width: 100%;
+            }
         }
+    </style>
+@endpush
 
-        .menu-item-text {
-            flex: 1;
-            font-size: 14px;
-        }
-
-        .menu-item-arrow {
-            transition: transform 0.3s ease;
-        }
-
-        .menu-item.expanded .menu-item-arrow {
-            transform: rotate(180deg);
-        }
+{{-- Legacy template/CSS below was left appended and overrides global sidebar theme.
+     Keep it disabled to ensure consistent sidebar/submenu styling across pages. --}}
+{{--
 
         .submenu {
             max-height: 0;
@@ -685,119 +996,34 @@
             }
         }
     </style>
-</head>
-<body>
-    <div class="container">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">
-                    <div class="logo-icon">
-                        <span class="material-symbols-outlined">school</span>
-                    </div>
-                    <div class="logo-text">SIMULASI TKA - SDN GU 09</div>
-                </div>
+--}}
+@section('content')
+    <!-- Flash Notification -->
+    @if(session('success'))
+        <div class="flash-notification success" id="flashNotification">
+            <div class="flash-content">
+                <span class="material-symbols-outlined">check_circle</span>
+                <span>{{ session('success') }}</span>
             </div>
+            <button class="flash-close" onclick="closeFlash()">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+    @endif
 
-            <nav class="sidebar-nav">
-                <div class="menu-section">
-                    <div class="menu-section-title">Menu</div>
-                    <a href="/dashboard" class="menu-item">
-                        <span class="material-symbols-outlined">dashboard</span>
-                        <span class="menu-item-text">Dashboard</span>
-                    </a>
-                    <a href="/users" class="menu-item">
-                        <span class="material-symbols-outlined">group</span>
-                        <span class="menu-item-text">User Management</span>
-                    </a>
-                    <div class="menu-item expanded" onclick="toggleSubmenu(event)">
-                        <span class="material-symbols-outlined">quiz</span>
-                        <span class="menu-item-text">Simulasi TKA</span>
-                        <span class="material-symbols-outlined menu-item-arrow" style="font-size: 18px;">expand_more</span>
-                    </div>
-                    <div class="submenu expanded">
-                        <a href="/soal/create" class="submenu-item">
-                            <span class="menu-item-text">Buat Soal</span>
-                        </a>
-                        <a href="/soal" class="submenu-item active">
-                            <span class="menu-item-text">Daftar Soal</span>
-                        </a>
-                        <a href="/simulasi/generate" class="submenu-item">
-                            <span class="menu-item-text">Generate Simulasi</span>
-                        </a>
-                        <a href="/simulasi/token" class="submenu-item">
-                            <span class="menu-item-text">Generate Token</span>
-                        </a>
-                    </div>
-                </div>
-
-                <div class="menu-section">
-                    <div class="menu-section-title">Help</div>
-                    <a href="#" class="menu-item">
-                        <span class="material-symbols-outlined">settings</span>
-                        <span class="menu-item-text">Setting</span>
-                    </a>
-                    <a href="#" class="menu-item">
-                        <span class="material-symbols-outlined">help</span>
-                        <span class="menu-item-text">Support</span>
-                    </a>
-                </div>
-            </nav>
-
-            <div class="sidebar-footer">
-                <div class="user-profile">
-                    <div class="user-avatar">MD</div>
-                    <div class="user-info">
-                        <div class="user-name">M A S - D I O</div>
-                        <div class="user-role">Admin</div>
-                    </div>
-                    <span class="material-symbols-outlined" style="font-size: 20px; color: rgba(255,255,255,0.6);">expand_more</span>
-                </div>
+    @if(session('error'))
+        <div class="flash-notification error" id="flashNotification">
+            <div class="flash-content">
+                <span class="material-symbols-outlined">error</span>
+                <span>{{ session('error') }}</span>
             </div>
-        </aside>
+            <button class="flash-close" onclick="closeFlash()">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+    @endif
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Flash Notification -->
-            @if(session('success'))
-            <div class="flash-notification success" id="flashNotification">
-                <div class="flash-content">
-                    <span class="material-symbols-outlined">check_circle</span>
-                    <span>{{ session('success') }}</span>
-                </div>
-                <button class="flash-close" onclick="closeFlash()">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
-            </div>
-            @endif
-
-            @if(session('error'))
-            <div class="flash-notification error" id="flashNotification">
-                <div class="flash-content">
-                    <span class="material-symbols-outlined">error</span>
-                    <span>{{ session('error') }}</span>
-                </div>
-                <button class="flash-close" onclick="closeFlash()">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
-            </div>
-            @endif
-
-            <!-- Header -->
-            <header class="header">
-                <div class="header-left">
-                    <button class="menu-toggle" onclick="toggleSidebar()">
-                        <span class="material-symbols-outlined">menu</span>
-                    </button>
-                    <div>
-                        <div style="font-size: 12px; color: #999; margin-bottom: 4px;">Simulasi TKA</div>
-                        <div style="font-size: 16px; font-weight: 600; color: #333;">Daftar Soal</div>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Content -->
-            <div class="content">
+    <div class="content">
                 @if(session('success'))
                 <div class="alert alert-success" style="background: #d4edda; color: #155724; padding: 12px 20px; border-radius: 8px; margin-bottom: 24px; border-left: 4px solid #28a745; display: flex; align-items: center; gap: 12px;">
                     <span class="material-symbols-outlined" style="font-size: 20px;">check_circle</span>
@@ -916,23 +1142,10 @@
                     </a>
                 </div>
             </div>
-        </main>
-    </div>
+@endsection
 
+@push('scripts')
     <script>
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('active');
-        }
-
-        function toggleSubmenu(event) {
-            const menuItem = event.currentTarget;
-            const submenu = menuItem.nextElementSibling;
-            
-            menuItem.classList.toggle('expanded');
-            submenu.classList.toggle('expanded');
-        }
-
         function hapusSoal(soalId) {
             if (confirm('Apakah Anda yakin ingin menghapus soal ini? Data yang dihapus tidak dapat dikembalikan.')) {
                 fetch(`/soal/${soalId}`, {
@@ -946,7 +1159,7 @@
                 .then(data => {
                     if (data.success) {
                         alert(data.message);
-                        location.reload(); // Reload page to update list
+                        location.reload();
                     } else {
                         alert('Error: ' + data.message);
                     }
@@ -972,7 +1185,7 @@
             cards.forEach(card => {
                 const mapel = card.getAttribute('data-mapel').toLowerCase();
                 const kode = card.querySelector('.card-kode').textContent.toLowerCase();
-                
+
                 const matchMapel = !selectedMapel || mapel.includes(selectedMapel);
                 const matchSearch = !searchTerm || kode.includes(searchTerm);
 
@@ -984,7 +1197,6 @@
                 }
             });
 
-            // Show empty state if no cards visible
             if (visibleCount === 0) {
                 cardsGrid.style.display = 'none';
                 emptyState.style.display = 'block';
@@ -994,10 +1206,9 @@
             }
         }
 
-        filterMapel.addEventListener('change', filterCards);
-        searchInput.addEventListener('input', filterCards);
+        filterMapel?.addEventListener('change', filterCards);
+        searchInput?.addEventListener('input', filterCards);
 
-        // Flash notification auto close and manual close
         function closeFlash() {
             const flash = document.getElementById('flashNotification');
             if (flash) {
@@ -1008,7 +1219,6 @@
             }
         }
 
-        // Auto close flash after 5 seconds
         const flashNotification = document.getElementById('flashNotification');
         if (flashNotification) {
             setTimeout(() => {
@@ -1016,17 +1226,15 @@
             }, 5000);
         }
 
-        // Close sidebar when clicking outside on mobile
         document.addEventListener('click', function(event) {
             const sidebar = document.getElementById('sidebar');
             const menuToggle = document.querySelector('.menu-toggle');
-            
-            if (window.innerWidth <= 768) {
+
+            if (window.innerWidth <= 768 && sidebar && menuToggle) {
                 if (!sidebar.contains(event.target) && !menuToggle.contains(event.target)) {
                     sidebar.classList.remove('active');
                 }
             }
         });
     </script>
-</body>
-</html>
+@endpush

@@ -8,6 +8,7 @@
     <title>Edit Soal TKA - Simulasi TKA</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    @include('layouts.styles')
     <style>
         * {
             margin: 0;
@@ -24,284 +25,6 @@
         .dashboard-container {
             display: flex;
             min-height: 100vh;
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-            width: 260px;
-            background: #702637;
-            color: white;
-            position: fixed;
-            height: 100vh;
-            left: 0;
-            top: 0;
-            overflow-y: auto;
-            transition: all 0.3s ease;
-            z-index: 1000;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .sidebar::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .sidebar::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .sidebar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
-        }
-
-        .sidebar-header {
-            padding: 24px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .logo-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .logo-icon .material-symbols-outlined {
-            font-size: 24px;
-            color: white;
-            font-variation-settings: 'FILL' 1, 'wght' 500;
-        }
-
-        .logo-text {
-            font-size: 16px;
-            font-weight: 600;
-            letter-spacing: -0.5px;
-            line-height: 1.3;
-        }
-
-        .sidebar-menu {
-            padding: 20px 0;
-        }
-
-        .menu-section {
-            margin-bottom: 24px;
-        }
-
-        .menu-section-title {
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: rgba(255, 255, 255, 0.5);
-            padding: 0 20px;
-            margin-bottom: 8px;
-        }
-
-        .menu-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 20px;
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            transition: all 0.2s ease;
-            position: relative;
-            cursor: pointer;
-        }
-
-        .menu-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            color: white;
-        }
-
-        .menu-item.active {
-            background: rgba(255, 255, 255, 0.15);
-            color: white;
-        }
-
-        .menu-item.active::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            background: white;
-        }
-
-        .menu-item .material-symbols-outlined {
-            font-size: 20px;
-            font-variation-settings: 'FILL' 0, 'wght' 400;
-        }
-
-        .menu-item.active .material-symbols-outlined {
-            font-variation-settings: 'FILL' 1, 'wght' 500;
-        }
-
-        .menu-item-text {
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .menu-item-arrow {
-            margin-left: auto;
-            transition: transform 0.3s ease;
-        }
-
-        .menu-item.expanded .menu-item-arrow {
-            transform: rotate(180deg);
-        }
-
-        .submenu {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-        }
-
-        .submenu.expanded {
-            max-height: 200px;
-        }
-
-        .submenu-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 20px 10px 52px;
-            color: rgba(255, 255, 255, 0.7);
-            text-decoration: none;
-            transition: all 0.2s ease;
-            position: relative;
-            cursor: pointer;
-            font-size: 13px;
-        }
-
-        .submenu-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            color: white;
-        }
-
-        .submenu-item.active {
-            color: white;
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        .submenu-item::before {
-            content: '';
-            position: absolute;
-            left: 32px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 4px;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-        }
-
-        .sidebar-footer {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            background: #702637;
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .user-profile:hover {
-            background: rgba(255, 255, 255, 0.12);
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #FFB6B6, #FFA0A0);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 16px;
-            color: #702637;
-        }
-
-        .user-info {
-            flex: 1;
-        }
-
-        .user-name {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 2px;
-        }
-
-        .user-role {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            margin-left: 260px;
-            transition: all 0.3s ease;
-        }
-
-        /* Header */
-        .header {
-            background: white;
-            padding: 20px 32px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .menu-toggle {
-            display: none;
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 8px;
-            transition: all 0.2s ease;
-        }
-
-        .menu-toggle:hover {
-            background: #F5F5F7;
-        }
-
-        .menu-toggle .material-symbols-outlined {
-            font-size: 24px;
-            color: #333;
         }
 
         /* Content */
@@ -748,22 +471,6 @@
 
         /* Responsive */
         @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-
-            .sidebar.active {
-                transform: translateX(0);
-            }
-
-            .main-content {
-                margin-left: 0;
-            }
-
-            .menu-toggle {
-                display: block;
-            }
-
             .content {
                 padding: 20px;
             }
@@ -776,7 +483,8 @@
 </head>
 <body class="edit-mode">
     <div class="dashboard-container">
-        <!-- Sidebar -->
+        @include('layouts.sidebar')
+        {{-- <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo-wrapper">
@@ -842,11 +550,12 @@
                     <span class="material-symbols-outlined" style="font-size: 20px; color: rgba(255,255,255,0.6);">expand_more</span>
                 </div>
             </div>
-        </aside>
+        </aside> --}}
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Header -->
+            @include('layouts.header', ['pageTitle' => 'Edit Soal', 'breadcrumb' => 'Simulasi TKA'])
+            {{-- <!-- Header -->
             <header class="header">
                 <div class="header-left">
                     <button class="menu-toggle" onclick="toggleSidebar()">
@@ -857,7 +566,7 @@
                         <div style="font-size: 16px; font-weight: 600; color: #333;">Edit Soal</div>
                     </div>
                 </div>
-            </header>
+            </header> --}}
 
             <!-- Content -->
             <div class="content">
@@ -1381,6 +1090,17 @@
                         <div class="pernyataan-list" id="pernyataan-list-${soalId}">
                             <div class="pernyataan-item">
                                 <input type="text" class="pernyataan-input" name="pernyataan_${soalId}[]" placeholder="Pernyataan 1" required>
+                                <div class="upload-container" style="margin: 8px 0;">
+                                    <label class="upload-btn" style="font-size: 12px; padding: 6px 12px;">
+                                        <span class="material-symbols-outlined" style="font-size: 16px;">image</span>
+                                        Upload Gambar Pernyataan
+                                        <input type="file" name="gambar_pernyataan_${soalId}_1" accept="image/*" onchange="previewImage(this, 'preview-pernyataan-${soalId}-1')">
+                                    </label>
+                                    <div id="preview-pernyataan-${soalId}-1" class="upload-wrapper" style="display: none;">
+                                        <img class="image-preview" src="" alt="Preview">
+                                        <button type="button" class="remove-image-btn" onclick="removeImage('preview-pernyataan-${soalId}-1', this)">Hapus</button>
+                                    </div>
+                                </div>
                                 <div class="checkbox-group">
                                     <div class="checkbox-item">
                                         <input type="radio" id="benar_${soalId}_1" name="kunci_${soalId}_1" value="benar" required>
@@ -1427,7 +1147,21 @@
                         <label class="form-label">Pernyataan (Tentukan Benar atau Salah)</label>
                         <div class="pernyataan-list" id="pernyataan-list-${soalId}">
                             <div class="pernyataan-item">
-                                <input type="text" class="pernyataan-input" name="pernyataan_${soalId}[]" placeholder="Pernyataan 1" required>
+                                <div style="display:flex; gap:8px; align-items:center;">
+                                    <input type="text" class="pernyataan-input" name="pernyataan_${soalId}[]" placeholder="Pernyataan 1" required style="flex: 1;">
+                                    <button type="button" class="remove-image-btn" onclick="removePernyataanMCMA(this, ${soalId})">Hapus Pernyataan</button>
+                                </div>
+                                <div class="upload-container" style="margin: 8px 0;">
+                                    <label class="upload-btn" style="font-size: 12px; padding: 6px 12px;">
+                                        <span class="material-symbols-outlined" style="font-size: 16px;">image</span>
+                                        Upload Gambar Pernyataan
+                                        <input type="file" name="gambar_pernyataan_${soalId}_1" accept="image/*" onchange="previewImage(this, 'preview-pernyataan-${soalId}-1')">
+                                    </label>
+                                    <div id="preview-pernyataan-${soalId}-1" class="upload-wrapper" style="display: none;">
+                                        <img class="image-preview" src="" alt="Preview">
+                                        <button type="button" class="remove-image-btn" onclick="removeImage('preview-pernyataan-${soalId}-1', this)">Hapus</button>
+                                    </div>
+                                </div>
                                 <div class="checkbox-group">
                                     <div class="checkbox-item">
                                         <input type="checkbox" id="benar_${soalId}_1" name="kunci_${soalId}_1_benar" value="benar">
@@ -1646,7 +1380,10 @@
             const pernyataanItem = document.createElement('div');
             pernyataanItem.className = 'pernyataan-item';
             pernyataanItem.innerHTML = `
-                <input type="text" class="pernyataan-input" name="pernyataan_${soalId}[]" placeholder="Pernyataan ${pernyataanCount}" required>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <input type="text" class="pernyataan-input" name="pernyataan_${soalId}[]" placeholder="Pernyataan ${pernyataanCount}" required style="flex: 1;">
+                    <button type="button" class="remove-image-btn" onclick="removePernyataanMCMA(this, ${soalId})">Hapus Pernyataan</button>
+                </div>
                 <div class="upload-container" style="margin: 8px 0;">
                     <label class="upload-btn" style="font-size: 12px; padding: 6px 12px;">
                         <span class="material-symbols-outlined" style="font-size: 16px;">image</span>
@@ -1667,6 +1404,85 @@
             `;
             
             pernyataanList.appendChild(pernyataanItem);
+        }
+
+        function removePernyataanMCMA(buttonEl, soalId) {
+            const pernyataanItem = buttonEl.closest('.pernyataan-item');
+            const pernyataanList = document.getElementById(`pernyataan-list-${soalId}`);
+            if (!pernyataanItem || !pernyataanList) {
+                return;
+            }
+
+            if (pernyataanList.children.length <= 1) {
+                alert('Minimal harus ada 1 pernyataan');
+                return;
+            }
+
+            // Remove any hidden inputs that might have been created for images in this item
+            const form = document.getElementById('formSoal');
+            const previewWrappers = pernyataanItem.querySelectorAll('[data-input-name]');
+            previewWrappers.forEach((wrapper) => {
+                const inputName = wrapper.getAttribute('data-input-name');
+                if (inputName) {
+                    const hidden = form?.querySelector(`input[type="hidden"][name="${CSS.escape(inputName)}"]`);
+                    if (hidden) hidden.remove();
+                }
+            });
+
+            pernyataanItem.remove();
+            reindexPernyataanMCMA(soalId);
+        }
+
+        function reindexPernyataanMCMA(soalId) {
+            const pernyataanList = document.getElementById(`pernyataan-list-${soalId}`);
+            if (!pernyataanList) {
+                return;
+            }
+
+            const items = pernyataanList.querySelectorAll('.pernyataan-item');
+            items.forEach((item, index) => {
+                const number = index + 1;
+
+                const input = item.querySelector('.pernyataan-input');
+                if (input) {
+                    input.placeholder = `Pernyataan ${number}`;
+                }
+
+                // Update checkbox id/name/label
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                const label = item.querySelector('label[for^="benar_"]');
+                if (checkbox) {
+                    checkbox.id = `benar_${soalId}_${number}`;
+                    checkbox.name = `kunci_${soalId}_${number}_benar`;
+                }
+                if (label) {
+                    label.setAttribute('for', `benar_${soalId}_${number}`);
+                }
+
+                // Update pernyataan image upload naming and preview wiring
+                const fileInput = item.querySelector('input[type="file"][name^="gambar_pernyataan_"]');
+                const previewWrapper = item.querySelector('[id^="preview-pernyataan-"]');
+                const removeBtn = previewWrapper?.querySelector('button.remove-image-btn');
+
+                if (fileInput) {
+                    fileInput.name = `gambar_pernyataan_${soalId}_${number}`;
+                    fileInput.setAttribute('onchange', `previewImage(this, 'preview-pernyataan-${soalId}-${number}')`);
+                    // If it was disabled due to paste image, keep it as-is; removeImage() handles re-enable.
+                }
+
+                if (previewWrapper) {
+                    previewWrapper.id = `preview-pernyataan-${soalId}-${number}`;
+
+                    // Keep existing image path (if any), but re-map its target input name
+                    if (previewWrapper.hasAttribute('data-image-path')) {
+                        previewWrapper.setAttribute('data-input-name', `gambar_pernyataan_${soalId}_${number}`);
+                    }
+
+                    if (removeBtn) {
+                        removeBtn.setAttribute('onclick', `removeImage('preview-pernyataan-${soalId}-${number}', this)`);
+                    }
+                }
+            });
         }
 
         function hapusSoal(soalId) {
@@ -1836,6 +1652,24 @@
                 console.log('No image path provided for:', previewId);
                 return;
             }
+
+            const resolveStorageUrl = (path) => {
+                if (!path) return '';
+                let p = String(path).trim();
+                if (!p) return '';
+                // Normalize Windows-style backslashes.
+                p = p.replace(/\\/g, '/');
+                // Already absolute URL
+                if (p.startsWith('http://') || p.startsWith('https://')) return p;
+                // Already a storage URL
+                if (p.startsWith('/storage/')) return p;
+                if (p.startsWith('storage/')) return '/' + p;
+                // Stored as public disk path
+                if (p.startsWith('/public/')) return '/storage/' + p.slice('/public/'.length);
+                if (p.startsWith('public/')) return '/storage/' + p.slice('public/'.length);
+                // Default: assume relative path on public disk
+                return '/storage/' + p.replace(/^\/+/, '');
+            };
             
             const previewWrapper = document.getElementById(previewId);
             if (!previewWrapper) {
@@ -1849,8 +1683,8 @@
                 return;
             }
             
-            previewImg.src = `/storage/${imagePath}`;
-            previewWrapper.style.display = 'block';
+            previewImg.src = resolveStorageUrl(imagePath);
+            previewWrapper.style.display = 'flex';
             
             // NEW APPROACH: Use data attributes instead of hidden inputs
             // Get proper name from preview ID
@@ -1913,15 +1747,42 @@
         // Remove image function
         function removeImage(previewId, button) {
             const previewWrapper = document.getElementById(previewId);
+            if (!previewWrapper) {
+                return;
+            }
+
             const previewImg = previewWrapper.querySelector('.image-preview');
             const uploadBtn = previewWrapper.previousElementSibling;
-            const fileInput = uploadBtn.querySelector('input[type="file"]');
-            
-            // Reset file input
-            fileInput.value = '';
-            
+            const fileInput = uploadBtn ? uploadBtn.querySelector('input[type="file"]') : null;
+
+            // Remove hidden input created during previous submit attempt (if any)
+            const form = document.getElementById('formSoal');
+            const inputName = previewWrapper.getAttribute('data-input-name');
+            if (form && inputName) {
+                const hiddenInput = form.querySelector(`input[type="hidden"][name="${CSS.escape(inputName)}"]`);
+                if (hiddenInput) {
+                    hiddenInput.remove();
+                }
+            }
+
+            // Clear data attributes so submit will not recreate hidden input
+            previewWrapper.removeAttribute('data-image-path');
+            previewWrapper.removeAttribute('data-input-name');
+
+            // Reset file input and re-enable it (it may have been disabled on previous submit)
+            if (fileInput) {
+                try {
+                    fileInput.value = '';
+                } catch (e) {
+                    // Ignore
+                }
+                fileInput.disabled = false;
+            }
+
             // Reset preview
-            previewImg.src = '';
+            if (previewImg) {
+                previewImg.src = '';
+            }
             previewWrapper.style.display = 'none';
         }
     </script>

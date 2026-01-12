@@ -1,3 +1,292 @@
+@extends('layouts.app')
+
+@section('title', 'Generate Token - Simulasi TKA')
+
+@php
+    $pageTitle = 'Generate Token';
+    $breadcrumb = 'Simulasi TKA';
+    $showSearch = false;
+    $showAvatar = false;
+@endphp
+
+@push('styles')
+    <style>
+        .page-header {
+            text-align: center;
+        }
+
+        .token-card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            max-width: 720px;
+            margin: 0 auto 24px auto;
+        }
+
+        .token-display {
+            background: linear-gradient(135deg, #702637 0%, #8b2f47 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 28px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .token-label {
+            font-size: 12px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .token-value {
+            font-size: 42px;
+            font-weight: 800;
+            letter-spacing: 8px;
+            margin: 8px 0 12px;
+        }
+
+        .token-timer {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.18);
+            border-radius: 999px;
+            font-size: 13px;
+        }
+
+        .timer-warning {
+            background: rgba(245, 158, 11, 0.25) !important;
+        }
+
+        .timer-expired {
+            background: rgba(239, 68, 68, 0.25) !important;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 18px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            background: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #702637;
+            color: white;
+            border-color: #702637;
+        }
+
+        .btn-primary:hover {
+            background: #5a1e2d;
+        }
+
+        .btn-secondary {
+            color: #702637;
+            border: 2px solid #702637;
+        }
+
+        .btn-secondary:hover {
+            background: #f9fafb;
+        }
+
+        .alert {
+            padding: 14px 16px;
+            border-radius: 10px;
+            margin: 0 auto 18px auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 720px;
+        }
+
+        .alert-info {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+        }
+
+        .info-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid #f0f0f0;
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        .info-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .info-list {
+            margin: 0;
+            padding-left: 18px;
+            color: #4b5563;
+            line-height: 1.7;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .token-card {
+                padding: 22px;
+            }
+            .token-value {
+                font-size: 34px;
+                letter-spacing: 6px;
+            }
+        }
+    </style>
+@endpush
+
+@section('content')
+    <div class="content">
+        <div class="page-header">
+            <h1 class="page-title">Token Akses Simulasi</h1>
+            <p class="page-subtitle">Token untuk verifikasi sesi siswa</p>
+        </div>
+
+        <div class="alert alert-info">
+            <span class="material-symbols-outlined">info</span>
+            <span>Token ini digunakan siswa untuk memverifikasi sesi mereka saat mengikuti simulasi. Token berlaku selama 1 jam.</span>
+        </div>
+
+        <div class="token-card">
+            <div class="token-display">
+                <div class="token-label">Token Akses Aktif</div>
+                <div class="token-value" id="tokenValue">{{ $currentToken?->token ?? '-' }}</div>
+                <div class="token-timer" id="tokenTimer">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">schedule</span>
+                    <span>Berlaku: <strong id="timeRemaining">--:--</strong></span>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" type="button" onclick="refreshToken()">
+                    <span class="material-symbols-outlined">refresh</span>
+                    Generate Token Baru
+                </button>
+                <button class="btn btn-secondary" type="button" onclick="copyToken()">
+                    <span class="material-symbols-outlined">content_copy</span>
+                    Salin Token
+                </button>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <div class="info-title">
+                <span class="material-symbols-outlined">lightbulb</span>
+                Cara Penggunaan Token
+            </div>
+            <ul class="info-list">
+                <li>Token akan otomatis berubah setiap 1 jam untuk keamanan</li>
+                <li>Siswa memasukkan token ini saat login untuk memverifikasi sesi simulasi</li>
+                <li>Token yang sama dapat digunakan oleh semua siswa dalam sesi yang sama</li>
+                <li>Klik "Generate Token Baru" untuk membuat token baru secara manual</li>
+                <li>Token menggunakan 6 huruf kapital (A-Z) tanpa angka</li>
+            </ul>
+        </div>
+    </div>
+@endsection
+
+@push('scripts')
+    <script>
+        const expiryTimeString = @json(optional($currentToken?->expires_at)->toIso8601String());
+        let tokenExpiryTime = expiryTimeString ? new Date(expiryTimeString).getTime() : 0;
+
+        function csrfToken() {
+            return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        }
+
+        function refreshToken() {
+            fetch('/simulasi/token/refresh', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken(),
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('tokenValue').textContent = data.token;
+                tokenExpiryTime = new Date(data.expires_at).getTime();
+                updateTimer();
+                alert('Token baru berhasil dibuat: ' + data.token);
+            })
+            .catch(error => {
+                console.error(error);
+                alert('Gagal generate token');
+            });
+        }
+
+        function copyToken() {
+            const token = document.getElementById('tokenValue').textContent;
+            if (!token || token === '-') return;
+
+            navigator.clipboard.writeText(token)
+                .then(() => alert('Token berhasil disalin: ' + token))
+                .catch(err => {
+                    console.error(err);
+                    alert('Gagal menyalin token');
+                });
+        }
+
+        function updateTimer() {
+            const timerElement = document.getElementById('tokenTimer');
+            const timeRemainingElement = document.getElementById('timeRemaining');
+            if (!timerElement || !timeRemainingElement) return;
+
+            if (!tokenExpiryTime) {
+                timeRemainingElement.textContent = '--:--';
+                return;
+            }
+
+            const now = Date.now();
+            const remaining = tokenExpiryTime - now;
+
+            timerElement.classList.remove('timer-warning', 'timer-expired');
+
+            if (remaining <= 0) {
+                timeRemainingElement.textContent = 'EXPIRED';
+                timerElement.classList.add('timer-expired');
+                return;
+            }
+
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+            timeRemainingElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            if (minutes < 5) {
+                timerElement.classList.add('timer-warning');
+            }
+        }
+
+        setInterval(updateTimer, 1000);
+        updateTimer();
+    </script>
+@endpush
+{{-- Legacy full-HTML template below was accidentally appended; keep disabled. --}}
+{{--
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -470,7 +759,8 @@
 </head>
 <body>
     <div class="container">
-        <!-- Sidebar -->
+        @include('layouts.sidebar')
+        {{-- <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
@@ -536,11 +826,12 @@
                     <span class="material-symbols-outlined" style="font-size: 20px; color: rgba(255,255,255,0.6);">expand_more</span>
                 </div>
             </div>
-        </aside>
+        </aside> --}}
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Header -->
+            @include('layouts.header', ['pageTitle' => 'Generate Token', 'breadcrumb' => 'Simulasi TKA'])
+            {{-- <!-- Header -->
             <header class="header">
                 <div class="header-left">
                     <button class="menu-toggle" onclick="toggleSidebar()">
@@ -551,7 +842,7 @@
                         <div style="font-size: 16px; font-weight: 600; color: #333;">Generate Token</div>
                     </div>
                 </div>
-            </header>
+            </header> --}}
 
             <!-- Content -->
             <div class="content">
@@ -702,3 +993,4 @@
     </script>
 </body>
 </html>
+--}}

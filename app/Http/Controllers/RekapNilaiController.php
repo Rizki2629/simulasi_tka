@@ -20,11 +20,34 @@ class RekapNilaiController extends Controller
 
         // Add statistics for each simulasi
         foreach ($simulasiList as $simulasi) {
-            $nilaiData = Nilai::where('simulasi_id', $simulasi->id)->get();
-            $simulasi->total_peserta = $nilaiData->count();
-            $simulasi->rata_rata = $nilaiData->avg('nilai_total') ?? 0;
-            $simulasi->nilai_tertinggi = $nilaiData->max('nilai_total') ?? 0;
-            $simulasi->nilai_terendah = $nilaiData->min('nilai_total') ?? 0;
+            $stats = Nilai::where('simulasi_id', $simulasi->id)
+                ->selectRaw('COUNT(*) as total_peserta, AVG(nilai_total) as rata_rata, MAX(nilai_total) as nilai_tertinggi, MIN(nilai_total) as nilai_terendah')
+                ->first();
+
+            $simulasi->total_peserta = (int) ($stats->total_peserta ?? 0);
+            $simulasi->rata_rata = (float) ($stats->rata_rata ?? 0);
+            $simulasi->nilai_tertinggi = (float) ($stats->nilai_tertinggi ?? 0);
+            $simulasi->nilai_terendah = (float) ($stats->nilai_terendah ?? 0);
+
+            // Detail nilai tertinggi/terendah (nama siswa)
+            $top = null;
+            $bottom = null;
+            if ($simulasi->total_peserta > 0) {
+                $top = Nilai::with(['user:id,name,rombongan_belajar'])
+                    ->where('simulasi_id', $simulasi->id)
+                    ->orderByDesc('nilai_total')
+                    ->orderBy('id')
+                    ->first();
+
+                $bottom = Nilai::with(['user:id,name,rombongan_belajar'])
+                    ->where('simulasi_id', $simulasi->id)
+                    ->orderBy('nilai_total')
+                    ->orderBy('id')
+                    ->first();
+            }
+
+            $simulasi->top_nilai = $top;
+            $simulasi->bottom_nilai = $bottom;
         }
 
         return view('rekap-nilai.index', compact('simulasiList'));

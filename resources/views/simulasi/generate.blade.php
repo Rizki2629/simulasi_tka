@@ -1,10 +1,15 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generate Simulasi - Simulasi TKA</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+@extends('layouts.app')
+
+@section('title', 'Generate Simulasi - Simulasi TKA')
+
+@php
+    $pageTitle = 'Generate Simulasi';
+    $breadcrumb = 'Simulasi TKA';
+    $showSearch = false;
+    $showAvatar = false;
+@endphp
+
+@push('styles')
     <style>
         * {
             margin: 0;
@@ -41,193 +46,6 @@
         }
 
         .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 8px;
-        }
-
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: white;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #702637;
-            font-weight: bold;
-            font-size: 20px;
-        }
-
-        .logo-text {
-            font-size: 16px;
-            font-weight: 600;
-            line-height: 1.2;
-        }
-
-        .sidebar-nav {
-            padding: 20px 0;
-        }
-
-        .menu-section {
-            margin-bottom: 24px;
-        }
-
-        .menu-section-title {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: rgba(255, 255, 255, 0.5);
-            padding: 8px 20px;
-            font-weight: 600;
-        }
-
-        .menu-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 20px;
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            position: relative;
-        }
-
-        .menu-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            color: white;
-        }
-
-        .menu-item.active {
-            background: rgba(255, 255, 255, 0.12);
-            color: white;
-        }
-
-        .menu-item-text {
-            flex: 1;
-            font-size: 14px;
-        }
-
-        .menu-item-arrow {
-            transition: transform 0.3s ease;
-        }
-
-        .menu-item.expanded .menu-item-arrow {
-            transform: rotate(180deg);
-        }
-
-        .submenu {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-            background: rgba(0, 0, 0, 0.1);
-        }
-
-        .submenu.expanded {
-            max-height: 500px;
-        }
-
-        .submenu-item {
-            display: block;
-            padding: 10px 20px 10px 52px;
-            color: rgba(255, 255, 255, 0.7);
-            text-decoration: none;
-            transition: all 0.2s ease;
-            position: relative;
-            cursor: pointer;
-            font-size: 13px;
-        }
-
-        .submenu-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            color: white;
-        }
-
-        .submenu-item.active {
-            color: white;
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        .submenu-item::before {
-            content: '';
-            position: absolute;
-            left: 32px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 4px;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-        }
-
-        .sidebar-footer {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            background: #702637;
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .user-profile:hover {
-            background: rgba(255, 255, 255, 0.12);
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: white;
-            color: #702637;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .user-info {
-            flex: 1;
-        }
-
-        .user-name {
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 2px;
-        }
-
-        .user-role {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            margin-left: 280px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .header {
-            background: white;
-            padding: 16px 32px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            display: flex;
             align-items: center;
             justify-content: space-between;
             position: sticky;
@@ -516,10 +334,11 @@
             }
         }
     </style>
-</head>
-<body>
-    <div class="container">
-        <!-- Sidebar -->
+@endpush
+
+@section('content')
+    <div class="content">
+        {{-- <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
@@ -585,25 +404,8 @@
                     <span class="material-symbols-outlined" style="font-size: 20px; color: rgba(255,255,255,0.6);">expand_more</span>
                 </div>
             </div>
-        </aside>
+        </aside> --}}
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Header -->
-            <header class="header">
-                <div class="header-left">
-                    <button class="menu-toggle" onclick="toggleSidebar()">
-                        <span class="material-symbols-outlined">menu</span>
-                    </button>
-                    <div>
-                        <div style="font-size: 12px; color: #999; margin-bottom: 4px;">Simulasi TKA</div>
-                        <div style="font-size: 16px; font-weight: 600; color: #333;">Generate Simulasi</div>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Content -->
-            <div class="content">
                 <div class="page-header">
                     <h1 class="page-title">Generate Simulasi</h1>
                     <p class="page-subtitle">Buat sesi simulasi baru dengan memilih soal dan peserta didik</p>
@@ -739,23 +541,11 @@
                         </button>
                     </div>
                 </form>
-            </div>
-        </main>
     </div>
+@endsection
 
+@push('scripts')
     <script>
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('active');
-        }
-
-        function toggleSubmenu(event) {
-            const menuItem = event.currentTarget;
-            const submenu = menuItem.nextElementSibling;
-            
-            menuItem.classList.toggle('expanded');
-            submenu.classList.toggle('expanded');
-        }
 
         function filterByRombel() {
             const filterValue = document.getElementById('rombelFilter').value;
@@ -832,5 +622,4 @@
             }
         });
     </script>
-</body>
-</html>
+@endpush

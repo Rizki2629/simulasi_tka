@@ -987,6 +987,18 @@
         let timerInterval;
         let examStartTime = null;
 
+        function resolveStorageUrl(path) {
+            if (!path) return '';
+            const p = String(path).trim();
+            if (!p) return '';
+            if (p.startsWith('http://') || p.startsWith('https://')) return p;
+            if (p.startsWith('/storage/')) return p;
+            if (p.startsWith('storage/')) return '/' + p;
+            if (p.startsWith('/public/')) return '/storage/' + p.slice('/public/'.length);
+            if (p.startsWith('public/')) return '/storage/' + p.slice('public/'.length);
+            return '/storage/' + p;
+        }
+
         // Load saved progress from localStorage and session
         function loadSavedProgress() {
             // Try localStorage first (backup)
@@ -1136,7 +1148,7 @@
                         ${soal.gambar_pertanyaan ? `
                             <div style="background: white; border-radius: 12px; padding: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.08); position: relative;">
                                 <div style="position: relative; width: 100%; display: flex; align-items: center; justify-content: center; cursor: zoom-in;" onclick="openImageZoom(event)">
-                                    <img src="/storage/${soal.gambar_pertanyaan}" style="max-width: 100%; height: auto; object-fit: contain; border-radius: 8px; transition: transform 0.2s;" class="zoomable-image question-image" alt="Gambar Soal">
+                                    <img src="${resolveStorageUrl(soal.gambar_pertanyaan)}" style="max-width: 100%; height: auto; object-fit: contain; border-radius: 8px; transition: transform 0.2s;" class="zoomable-image question-image" alt="Gambar Soal">
                                     <div style="position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.6); color: white; padding: 8px 12px; border-radius: 6px; display: flex; align-items: center; gap: 6px; font-size: 13px; pointer-events: none;">
                                         <span class="material-symbols-outlined" style="font-size: 18px;">search</span>
                                         <span>Klik untuk memperbesar</span>
@@ -1193,7 +1205,7 @@
                                     
                                     questionHTML += `
                                         <tr>
-                                            <td style="font-size: 15px; padding: 16px 20px;">${opt.teks_jawaban}</td>
+                                            <td style="font-size: 15px; padding: 16px 20px;">${opt.teks_jawaban || ''}${opt.gambar_jawaban ? `<br><img src="${resolveStorageUrl(opt.gambar_jawaban)}" class="answer-image" alt="Gambar">` : ''}</td>
                                             <td class="text-center" style="background: #fafafa;">
                                                 <input type="radio" 
                                                        name="bs_${sub.id}_${opt.id}" 
@@ -1298,8 +1310,8 @@
                                                        ${isSelected ? 'checked' : ''} 
                                                        onchange="handleMCMAChange('${subId}', '${letter}', this)">
                                                 <div class="answer-text" style="margin-left: 12px; font-size: 15px;">
-                                                     <span style="font-weight:600; margin-right:6px;">${letter}.</span> ${pil.teks_jawaban}
-                                                     ${pil.gambar_jawaban ? `<br><img src="/storage/${pil.gambar_jawaban}" class="answer-image" alt="Gambar">` : ''}
+                                                       ${pil.teks_jawaban}
+                                                       ${pil.gambar_jawaban ? `<br><img src="${resolveStorageUrl(pil.gambar_jawaban)}" class="answer-image" alt="Gambar">` : ''}
                                                 </div>
                                             </label>
                                         </div>
@@ -1381,7 +1393,7 @@
                          
                          questionHTML += `
                             <tr>
-                                <td>${pil.teks_jawaban}</td>
+                                <td>${pil.teks_jawaban || ''}${pil.gambar_jawaban ? `<br><img src="${resolveStorageUrl(pil.gambar_jawaban)}" class="answer-image" alt="Gambar">` : ''}</td>
                                 <td style="text-align: center;">
                                     <input type="radio" 
                                            name="pernyataan_${soalId}_${pil.id}" 
@@ -1502,7 +1514,7 @@
                                         <input type="checkbox" name="answer[]" value="${letter}" ${isSelected ? 'checked' : ''} onchange="handleMCMAChange('${soalId}', '${letter}', this)">
                                         <div class="answer-text" style="margin-left: 8px;">
                                             ${pil.teks_jawaban}
-                                            ${pil.gambar_jawaban ? `<br><img src="/storage/${pil.gambar_jawaban}" class="answer-image" alt="Gambar Pilihan ${letter}">` : ''}
+                                            ${pil.gambar_jawaban ? `<br><img src="${resolveStorageUrl(pil.gambar_jawaban)}" class="answer-image" alt="Gambar Pilihan ${letter}">` : ''}
                                         </div>
                                     </label>
                                 </div>
@@ -1518,7 +1530,7 @@
                                         <div class="answer-letter">${letter}</div>
                                         <div class="answer-text">
                                             ${pil.teks_jawaban}
-                                            ${pil.gambar_jawaban ? `<br><img src="/storage/${pil.gambar_jawaban}" class="answer-image" alt="Gambar Pilihan ${letter}">` : ''}
+                                            ${pil.gambar_jawaban ? `<br><img src="${resolveStorageUrl(pil.gambar_jawaban)}" class="answer-image" alt="Gambar Pilihan ${letter}">` : ''}
                                         </div>
                                     </label>
                                 </div>
@@ -2129,7 +2141,15 @@
 
         function confirmLogout() {
             if (confirm('Apakah Anda yakin ingin keluar? Progress ujian akan tersimpan.')) {
-                window.location.href = '/simulasi/student-logout';
+                fetch(@json(route('simulasi.student.logout')), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    },
+                })
+                .finally(() => {
+                    window.location.href = @json(route('simulasi.login'));
+                });
             }
         }
 

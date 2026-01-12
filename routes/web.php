@@ -19,10 +19,10 @@ Route::get('/', function () {
 
 // Login routes - accessible without authentication
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 
-// Protected routes - require authentication
-Route::middleware(['auth'])->group(function () {
+// Protected routes - require authentication (Admin/Guru only)
+Route::middleware(['auth', 'role:admin,guru'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -70,11 +70,11 @@ Route::middleware(['auth'])->group(function () {
 
 // Student Login Routes - Public (No authentication required)
 Route::get('/simulasi/login', [SimulasiController::class, 'showStudentLogin'])->name('simulasi.login');
-Route::post('/simulasi/student-login', [SimulasiController::class, 'studentLogin'])->name('simulasi.student.login');
+Route::post('/simulasi/student-login', [SimulasiController::class, 'studentLogin'])->name('simulasi.student.login')->middleware('throttle:10,1');
 Route::get('/simulasi/student-dashboard', [SimulasiController::class, 'studentDashboard'])->name('simulasi.student.dashboard');
 Route::post('/simulasi/confirm-data', [SimulasiController::class, 'confirmData'])->name('simulasi.confirm.data');
 Route::post('/simulasi/update-token', [SimulasiController::class, 'updateToken'])->name('simulasi.update.token');
-Route::get('/simulasi/student-logout', [SimulasiController::class, 'studentLogout'])->name('simulasi.student.logout');
+Route::post('/simulasi/student-logout', [SimulasiController::class, 'studentLogout'])->name('simulasi.student.logout');
 
 // Exam Routes - Public (Students can access)
 Route::post('/simulasi/start-exam', [SimulasiController::class, 'startExam'])->name('simulasi.start.exam');
@@ -84,8 +84,10 @@ Route::post('/simulasi/finish-exam', [SimulasiController::class, 'finishExam'])-
 Route::get('/simulasi/review', [SimulasiController::class, 'review'])->name('simulasi.review');
 Route::post('/simulasi/finish-review', [SimulasiController::class, 'finishReview'])->name('simulasi.finish-review');
 
-// Firebase Test Routes - Public (untuk testing)
-Route::get('/firebase/test', [FirebaseTestController::class, 'testFirebase'])->name('firebase.test');
-Route::get('/firebase/soal', [FirebaseTestController::class, 'getSoal'])->name('firebase.soal');
-Route::get('/firebase/soal/mapel/{id}', [FirebaseTestController::class, 'getSoalByMapel'])->name('firebase.soal.mapel');
-Route::post('/firebase/soal', [FirebaseTestController::class, 'storeSoal'])->name('firebase.soal.store');
+// Firebase Test Routes - Protected (testing only)
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('/firebase/test', [FirebaseTestController::class, 'testFirebase'])->name('firebase.test');
+    Route::get('/firebase/soal', [FirebaseTestController::class, 'getSoal'])->name('firebase.soal');
+    Route::get('/firebase/soal/mapel/{id}', [FirebaseTestController::class, 'getSoalByMapel'])->name('firebase.soal.mapel');
+    Route::post('/firebase/soal', [FirebaseTestController::class, 'storeSoal'])->name('firebase.soal.store');
+});

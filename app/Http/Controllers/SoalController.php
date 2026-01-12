@@ -170,6 +170,10 @@ class SoalController extends Controller
         try {
             $soal = Soal::findOrFail($id);
 
+            // IMPORTANT: On update we recreate sub-soal, but we must not delete image files
+            // that are still referenced by the incoming request (e.g. pasted images).
+            $referencedImages = $this->extractReferencedImagePaths($request);
+
             $mataPelajaran = MataPelajaran::firstOrCreate(
                 ['nama' => $request->mata_pelajaran],
                 [
@@ -209,14 +213,20 @@ class SoalController extends Controller
             $soal->save();
 
             // Hapus sub-soal lama
-            $soal->subSoal()->each(function($sub) {
+            $soal->subSoal()->each(function($sub) use ($referencedImages) {
                 foreach ($sub->pilihanJawaban as $pil) {
                     if ($pil->gambar_jawaban) {
-                        Storage::disk('public')->delete($pil->gambar_jawaban);
+                        $path = $this->normalizePublicPath($pil->gambar_jawaban);
+                        if ($path !== '' && !in_array($path, $referencedImages, true)) {
+                            Storage::disk('public')->delete($path);
+                        }
                     }
                 }
                 if ($sub->gambar_pertanyaan) {
-                    Storage::disk('public')->delete($sub->gambar_pertanyaan);
+                    $path = $this->normalizePublicPath($sub->gambar_pertanyaan);
+                    if ($path !== '' && !in_array($path, $referencedImages, true)) {
+                        Storage::disk('public')->delete($path);
+                    }
                 }
                 $sub->delete();
             });
@@ -246,6 +256,63 @@ class SoalController extends Controller
                            ->withInput()
                            ->with('error', 'Gagal mengupdate soal: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Normalize a path that points to a file on the public disk.
+     * Accepts variants like: /storage/foo, storage/foo, public/foo, /public/foo, or plain relative paths.
+     */
+    private function normalizePublicPath(?string $path): string
+    {
+        $p = trim((string) $path);
+        if ($p === '') {
+            return '';
+        }
+
+        $p = str_replace('\\', '/', $p);
+
+        if (str_starts_with($p, 'http://') || str_starts_with($p, 'https://')) {
+            $parsed = parse_url($p);
+            $p = $parsed['path'] ?? '';
+        }
+
+        $p = ltrim($p, '/');
+
+        if (str_starts_with($p, 'storage/')) {
+            $p = substr($p, strlen('storage/'));
+        }
+
+        if (str_starts_with($p, 'public/')) {
+            $p = substr($p, strlen('public/'));
+        }
+
+        return ltrim($p, '/');
+    }
+
+    /**
+     * Extract all referenced image paths from the request payload.
+     * This is used to avoid deleting files that are still reused on update.
+     */
+    private function extractReferencedImagePaths(Request $request): array
+    {
+        $paths = [];
+
+        foreach ($request->all() as $key => $value) {
+            if (!is_string($key) || !str_starts_with($key, 'gambar_')) {
+                continue;
+            }
+
+            if (!is_string($value)) {
+                continue;
+            }
+
+            $normalized = $this->normalizePublicPath($value);
+            if ($normalized !== '') {
+                $paths[] = $normalized;
+            }
+        }
+
+        return array_values(array_unique($paths));
     }
 
     public function destroy($id)

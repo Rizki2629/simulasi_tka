@@ -15,6 +15,13 @@
     <nav class="sidebar-menu">
         <div class="menu-section">
             <div class="menu-section-title">Menu</div>
+
+            @php
+                $isSimulasiTkaExpanded = request()->is('soal*')
+                    || request()->is('simulasi/generate*')
+                    || request()->is('simulasi/token*');
+            @endphp
+
             <a href="/dashboard" class="menu-item {{ request()->is('dashboard') ? 'active' : '' }}">
                 <span class="material-symbols-outlined">dashboard</span>
                 <span class="menu-item-text">Dashboard</span>
@@ -31,12 +38,12 @@
                 <span class="material-symbols-outlined">monitor_heart</span>
                 <span class="menu-item-text">Monitor Siswa</span>
             </a>
-            <div class="menu-item {{ request()->is('soal*') || request()->is('simulasi*') ? 'expanded' : '' }}" onclick="toggleSubmenu(event)">
+            <div class="menu-item {{ $isSimulasiTkaExpanded ? 'expanded' : '' }}" onclick="toggleSubmenu(event)">
                 <span class="material-symbols-outlined">menu_book</span>
                 <span class="menu-item-text">Simulasi TKA</span>
                 <span class="material-symbols-outlined menu-item-arrow" style="font-size: 18px;">expand_more</span>
             </div>
-            <div class="submenu {{ request()->is('soal*') || request()->is('simulasi*') ? 'expanded' : '' }}">
+            <div class="submenu {{ $isSimulasiTkaExpanded ? 'expanded' : '' }}">
                 <a href="/soal/create" class="submenu-item {{ request()->is('soal/create') ? 'active' : '' }}">
                     <span class="menu-item-text">Buat Soal</span>
                 </a>
@@ -49,21 +56,28 @@
                 <a href="/simulasi/token" class="submenu-item {{ request()->is('simulasi/token') ? 'active' : '' }}">
                     <span class="menu-item-text">Generate Token</span>
                 </a>
-                <a href="/simulasi/exam-list" class="submenu-item {{ request()->is('simulasi/exam-list') || request()->is('simulasi/*/student-status') ? 'active' : '' }}">
-                    <span class="menu-item-text">Daftar Login Peserta</span>
-                </a>
             </div>
         </div>
     </nav>
 
     <div class="sidebar-footer">
         <div class="user-profile">
-            <div class="user-avatar">MD</div>
+            @php
+                $user = auth()->user();
+                $nameParts = explode(' ', $user->name);
+                $initials = '';
+                foreach($nameParts as $part) {
+                    if(!empty($part)) {
+                        $initials .= strtoupper(substr($part, 0, 1));
+                    }
+                }
+                $initials = substr($initials, 0, 2);
+            @endphp
+            <div class="user-avatar">{{ $initials }}</div>
             <div class="user-info">
-                <div class="user-name">M A S - D I O</div>
-                <div class="user-role">Admin</div>
+                <div class="user-name">{{ $user->name }}</div>
+                <div class="user-role">{{ ucfirst($user->role ?? 'User') }}</div>
             </div>
-            <span class="material-symbols-outlined" style="font-size: 20px; color: rgba(255,255,255,0.6);">expand_more</span>
         </div>
     </div>
 </aside>

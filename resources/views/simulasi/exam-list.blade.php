@@ -1,10 +1,15 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar Ujian - Simulasi TKA</title>
-    @include('layouts.styles')
+@extends('layouts.app')
+
+@section('title', 'Daftar Ujian - Simulasi TKA')
+
+@php
+    $pageTitle = 'Daftar Ujian';
+    $breadcrumb = 'Monitor Siswa';
+    $showAvatar = false;
+    $showSearch = false;
+@endphp
+
+@push('styles')
     <style>
         .simulasi-grid {
             display: grid;
@@ -188,20 +193,10 @@
             color: #991b1b;
         }
     </style>
-</head>
-<body>
-    <div class="dashboard-container">
-        @include('layouts.sidebar')
+@endpush
 
-        <main class="main-content">
-            @include('layouts.header', [
-                'pageTitle' => 'Daftar Ujian', 
-                'breadcrumb' => 'Monitor Siswa',
-                'showAvatar' => true,
-                'avatarInitials' => 'MD'
-            ])
-
-            <div class="content">
+@section('content')
+    <div class="content">
                 <div style="margin-bottom: 24px;">
                     <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 8px;">Daftar Ujian</h2>
                     <p style="color: #666;">Pilih ujian untuk melihat status dan progress siswa</p>
@@ -284,10 +279,5 @@
                     </a>
                 </div>
                 @endif
-            </div>
-        </main>
     </div>
-
-    @include('layouts.scripts')
-</body>
-</html>
+@endsection

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 
 class UserManagementController extends Controller
@@ -94,14 +95,43 @@ class UserManagementController extends Controller
         return redirect()->route('users.index')->with('success', 'User berhasil diupdate');
     }
 
-    public function destroy(User $user)
+    public function destroy(Request $request, User $user)
     {
-        $user->delete();
-        
-        if (request()->expectsJson()) {
+        if (auth()->check() && (int) auth()->id() === (int) $user->id) {
+            $message = 'Tidak bisa menghapus akun yang sedang login.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 400);
+            }
+
+            return redirect()->route('users.index')->with('error', $message);
+        }
+
+        try {
+            $user->delete();
+        } catch (QueryException $e) {
+            $message = 'User tidak bisa dihapus karena masih dipakai oleh data lain.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 409);
+            }
+
+            return redirect()->route('users.index')->with('error', $message);
+        } catch (\Throwable $e) {
+            report($e);
+            $message = 'Terjadi kesalahan saat menghapus user.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 500);
+            }
+
+            return redirect()->route('users.index')->with('error', $message);
+        }
+
+        if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'User berhasil dihapus']);
         }
-        
+
         return redirect()->route('users.index')->with('success', 'User berhasil dihapus');
     }
 
@@ -112,7 +142,15 @@ class UserManagementController extends Controller
             'ids.*' => 'exists:users,id',
         ]);
 
-        User::whereIn('id', $request->ids)->delete();
+        $ids = array_map('intval', $request->ids ?? []);
+        if (auth()->check() && in_array((int) auth()->id(), $ids, true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak bisa menghapus akun yang sedang login dari bulk delete.'
+            ], 400);
+        }
+
+        User::whereIn('id', $ids)->delete();
 
         return response()->json(['success' => true, 'message' => 'Data terpilih berhasil dihapus.']);
     }

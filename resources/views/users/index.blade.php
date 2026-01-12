@@ -6,320 +6,6 @@
     <title>User Management - Simulasi TKA</title>
     @include('layouts.styles')
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Roboto', sans-serif;
-            background: #F5F5F7;
-            overflow-x: hidden;
-        }
-
-        .dashboard-container {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-            width: 260px;
-            background: #702637;
-            color: white;
-            position: fixed;
-            height: 100vh;
-            left: 0;
-            top: 0;
-            overflow-y: auto;
-            transition: all 0.3s ease;
-            z-index: 1000;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .sidebar::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .sidebar::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .sidebar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
-        }
-
-        .sidebar-header {
-            padding: 24px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .logo-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .logo-icon .material-symbols-outlined {
-            font-size: 24px;
-            color: white;
-            font-variation-settings: 'FILL' 1, 'wght' 500;
-        }
-
-        .logo-text {
-            font-size: 20px;
-            font-weight: 600;
-            letter-spacing: -0.5px;
-        }
-
-        .sidebar-menu {
-            padding: 20px 0;
-        }
-
-        .menu-section {
-            margin-bottom: 24px;
-        }
-
-        .menu-section-title {
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: rgba(255, 255, 255, 0.5);
-            padding: 0 20px;
-            margin-bottom: 8px;
-        }
-
-        .menu-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 20px;
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            transition: all 0.2s ease;
-            position: relative;
-            cursor: pointer;
-        }
-
-        .menu-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            color: white;
-        }
-
-        .menu-item.active {
-            background: rgba(255, 255, 255, 0.15);
-            color: white;
-        }
-
-        .menu-item.active::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            background: white;
-        }
-
-        .menu-item .material-symbols-outlined {
-            font-size: 20px;
-            font-variation-settings: 'FILL' 0, 'wght' 400;
-        }
-
-        .menu-item.active .material-symbols-outlined {
-            font-variation-settings: 'FILL' 1, 'wght' 500;
-        }
-
-        .menu-item-text {
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .menu-item-arrow {
-            margin-left: auto;
-            transition: transform 0.3s ease;
-        }
-
-        .menu-item.expanded .menu-item-arrow {
-            transform: rotate(180deg);
-        }
-
-        .submenu {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-        }
-
-        .submenu.expanded {
-            max-height: 200px;
-        }
-
-        .submenu-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 20px 10px 52px;
-            color: rgba(255, 255, 255, 0.7);
-            text-decoration: none;
-            transition: all 0.2s ease;
-            position: relative;
-            cursor: pointer;
-            font-size: 13px;
-        }
-
-        .submenu-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            color: white;
-        }
-
-        .submenu-item.active {
-            color: white;
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        .submenu-item::before {
-            content: '';
-            position: absolute;
-            left: 32px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 4px;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-        }
-
-        .sidebar-footer {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            background: #702637;
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .user-profile:hover {
-            background: rgba(255, 255, 255, 0.12);
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #FFB6B6, #FFA0A0);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 16px;
-            color: #702637;
-        }
-
-        .user-info {
-            flex: 1;
-        }
-
-        .user-name {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 2px;
-        }
-
-        .user-role {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            margin-left: 260px;
-            transition: all 0.3s ease;
-        }
-
-        /* Header */
-        .header {
-            background: white;
-            padding: 20px 32px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .menu-toggle {
-            display: none;
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 8px;
-            transition: all 0.2s ease;
-        }
-
-        .menu-toggle:hover {
-            background: #F5F5F7;
-        }
-
-        .menu-toggle .material-symbols-outlined {
-            font-size: 24px;
-            color: #333;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .user-avatar-header {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #FFB6B6, #FFA0A0);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 14px;
-            color: #702637;
-            cursor: pointer;
-        }
-
         /* Content */
         .content {
             padding: 32px;
@@ -736,9 +422,7 @@
         <main class="main-content">
             @include('layouts.header', [
                 'pageTitle' => 'User management', 
-                'breadcrumb' => 'Simulasi TKA',
-                'showAvatar' => true,
-                'avatarInitials' => 'MD'
+                'breadcrumb' => 'Simulasi TKA'
             ])
 
             <!-- Content -->
@@ -789,12 +473,12 @@
                                     <div style="padding: 8px 16px; font-weight: 600; color: #374151; font-size: 12px; text-transform: uppercase;">
                                         Filter Rombel
                                     </div>
-                                    <a href="{{ request()->fullUrlWithQuery(['class_filter' => null]) }}" style="display: block; padding: 8px 16px; color: #4b5563; text-decoration: none; font-size: 14px; {{ !request('class_filter') ? 'background: #f3f4f6;' : '' }}">
+                                    <a href="#" onclick="applyClassFilter(null); return false;" style="display: block; padding: 8px 16px; color: #4b5563; text-decoration: none; font-size: 14px; {{ !request('class_filter') ? 'background: #f3f4f6;' : '' }}">
                                         Semua Kelas
                                     </a>
                                     @if(isset($classes))
                                         @foreach($classes as $class)
-                                            <a href="{{ request()->fullUrlWithQuery(['class_filter' => $class]) }}" style="display: block; padding: 8px 16px; color: #4b5563; text-decoration: none; font-size: 14px; {{ request('class_filter') == $class ? 'background: #f3f4f6;' : '' }}">
+                                            <a href="#" onclick="applyClassFilter('{{ $class }}'); return false;" style="display: block; padding: 8px 16px; color: #4b5563; text-decoration: none; font-size: 14px; {{ request('class_filter') == $class ? 'background: #f3f4f6;' : '' }}">
                                                 Kelas {{ $class }}
                                             </a>
                                         @endforeach
@@ -823,7 +507,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width: 40px;">
-                                            <input type="checkbox" class="checkbox">
+                                            <input type="checkbox" class="checkbox" onclick="toggleSelectAll(this)">
                                         </th>
                                         <th>User name</th>
                                         <th>Access</th>
@@ -836,7 +520,7 @@
                                     @forelse($admins as $admin)
                                     <tr>
                                         <td>
-                                            <input type="checkbox" class="checkbox">
+                                            <input type="checkbox" class="checkbox" value="{{ $admin->id }}">
                                         </td>
                                         <td>
                                             <div class="user-cell">
@@ -888,7 +572,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width: 40px;">
-                                            <input type="checkbox" class="checkbox">
+                                            <input type="checkbox" class="checkbox" onclick="toggleSelectAll(this)">
                                         </th>
                                         <th>User name</th>
                                         <th>Access</th>
@@ -901,7 +585,7 @@
                                     @forelse($teachers as $teacher)
                                     <tr>
                                         <td>
-                                            <input type="checkbox" class="checkbox">
+                                            <input type="checkbox" class="checkbox" value="{{ $teacher->id }}">
                                         </td>
                                         <td>
                                             <div class="user-cell">
@@ -1314,17 +998,38 @@
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 }
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
+            .then(async (response) => {
+                const contentType = response.headers.get('content-type') || '';
+                let payload = null;
+
+                if (contentType.includes('application/json')) {
+                    payload = await response.json();
                 } else {
-                    alert('Gagal menghapus user.');
+                    const text = await response.text();
+                    payload = { success: false, message: text };
                 }
+
+                return { response, payload };
+            })
+            .then(({ response, payload }) => {
+                if (response.ok && payload?.success) {
+                    location.reload();
+                    return;
+                }
+
+                let message = payload?.message || `Gagal menghapus user (HTTP ${response.status}).`;
+
+                if (response.status === 419) {
+                    message = 'Sesi Anda sudah kedaluwarsa. Silakan refresh halaman lalu coba lagi.';
+                } else if (response.status === 401 || response.status === 302) {
+                    message = 'Sesi login Anda sudah habis. Silakan login kembali.';
+                }
+
+                alert(message);
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Terjadi kesalahan.');
+                alert('Terjadi kesalahan saat menghapus user. Coba refresh halaman lalu ulangi.');
             });
         }
 
@@ -1352,6 +1057,27 @@
         function toggleFilterMenu() {
             const menu = document.getElementById('filterMenu');
             menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function applyClassFilter(classFilter) {
+            const url = new URL(window.location.href);
+
+            // Persist current tab (because tabs switch via pushState and server-rendered links won't know it)
+            const currentTab = url.searchParams.get('tab') || (document.querySelector('.tab.active')?.textContent || '').trim().toLowerCase();
+            if (currentTab) {
+                url.searchParams.set('tab', currentTab);
+            }
+
+            if (classFilter === null || classFilter === '') {
+                url.searchParams.delete('class_filter');
+            } else {
+                url.searchParams.set('class_filter', classFilter);
+            }
+
+            // Reset generic pagination on filter change
+            url.searchParams.delete('page');
+
+            window.location.href = url.toString();
         }
 
         // Close Filter Menu when clicking outside
@@ -1405,29 +1131,49 @@
 
             const activeTabContent = document.querySelector('.tab-content.active');
             const checkedBoxes = activeTabContent.querySelectorAll('tbody .checkbox:checked');
-            const ids = Array.from(checkedBoxes).map(cb => cb.value);
+            const ids = Array.from(checkedBoxes).map(cb => cb.value).filter(v => String(v || '').trim() !== '');
 
             if (ids.length === 0) return;
 
             fetch('{{ route("users.bulk-delete") }}', {
                 method: 'POST',
                 headers: {
+                    'Accept': 'application/json',
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 },
                 body: JSON.stringify({ ids: ids })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload(); 
+            .then(async (response) => {
+                const contentType = response.headers.get('content-type') || '';
+                let payload = null;
+
+                if (contentType.includes('application/json')) {
+                    payload = await response.json();
                 } else {
-                    alert('Gagal menghapus data.');
+                    const text = await response.text();
+                    payload = { success: false, message: text };
                 }
+
+                return { response, payload };
+            })
+            .then(({ response, payload }) => {
+                if (response.ok && payload?.success) {
+                    location.reload();
+                    return;
+                }
+
+                let message = payload?.message || `Gagal menghapus data (HTTP ${response.status}).`;
+                if (response.status === 419) {
+                    message = 'Sesi Anda sudah kedaluwarsa. Silakan refresh halaman lalu coba lagi.';
+                } else if (response.status === 401 || response.status === 302) {
+                    message = 'Sesi login Anda sudah habis. Silakan login kembali.';
+                }
+                alert(message);
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Terjadi kesalahan.');
+                alert('Terjadi kesalahan saat menghapus data. Coba refresh halaman lalu ulangi.');
             });
         }
 

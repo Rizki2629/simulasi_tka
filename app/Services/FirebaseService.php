@@ -10,11 +10,31 @@ class FirebaseService
 
     public function __construct()
     {
+        $credentialsEnv = (string) env('FIREBASE_CREDENTIALS');
+        $credentialsPath = $this->resolvePath($credentialsEnv);
+
         $factory = (new Factory)
-            ->withServiceAccount(base_path(env('FIREBASE_CREDENTIALS')))
+            ->withServiceAccount($credentialsPath)
             ->withProjectId(env('FIREBASE_PROJECT_ID'));
 
         $this->app = $factory->create();
+    }
+
+    private function resolvePath(string $path): string
+    {
+        $path = trim($path);
+        if ($path === '') {
+            return '';
+        }
+
+        if (preg_match('/^[A-Za-z]:\\\\/', $path) === 1 || str_starts_with($path, '\\\\')) {
+            return $path;
+        }
+        if (str_starts_with($path, '/')) {
+            return $path;
+        }
+
+        return base_path($path);
     }
 
     /**
