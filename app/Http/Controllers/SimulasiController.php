@@ -109,34 +109,35 @@ class SimulasiController extends Controller
                        ->orderBy('rombongan_belajar')
                        ->orderBy('name')
                        ->get();
-        
-        // Get paket soal grouped by mata pelajaran with soal count
-        $paketSoal = MataPelajaran::where('is_active', true)
-                    ->withCount('soal')
-                    ->has('soal')
-                    ->get()
-                    ->map(function($mp, $index) {
-                        // Generate kode paket format: MTK-20251114-143025
-                        $prefix = strtoupper($mp->kode ?? substr($mp->nama, 0, 3));
-                        $tanggal = now()->format('Ymd-His');
-                        // Add index to make it unique
-                        $uniqueCode = $index + 1;
-                        return [
-                            'id' => $mp->id,
-                            'kode' => "{$prefix}-{$tanggal}-{$uniqueCode}",
-                            'nama' => $mp->nama,
-                            'jumlah_soal' => $mp->soal_count,
-                            'label' => "{$prefix}-{$tanggal}-{$uniqueCode} - {$mp->nama} ({$mp->soal_count} Soal)"
-                        ];
-                    });
-        
+
+        // Get all paket soal (parent records) so admin can pick a specific packet.
+        // Each paket contains its questions in sub_soal.
+        $paketSoal = Soal::query()
+            ->where('jenis_soal', 'paket')
+            ->with(['mataPelajaran'])
+            ->withCount('subSoal')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($soal) {
+                $mapel = $soal->mataPelajaran;
+                $namaMapel = $mapel?->nama ?? '-';
+                $jumlah = (int) ($soal->sub_soal_count ?? 0);
+                return [
+                    'id' => $soal->id,
+                    'kode' => $soal->kode_soal,
+                    'nama' => $namaMapel,
+                    'jumlah_soal' => $jumlah,
+                    'label' => "{$soal->kode_soal} - {$namaMapel} ({$jumlah} Soal)",
+                ];
+            });
+
         return view('simulasi.generate', compact('students', 'paketSoal'));
     }
 
     public function storeSimulasi(Request $request)
     {
         $request->validate([
-            'mata_pelajaran_id' => 'required|exists:mata_pelajaran,id',
+            'paket_soal_id' => 'required|exists:soal,id',
             'nama_simulasi' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'waktu_mulai' => 'required|date',
@@ -146,13 +147,20 @@ class SimulasiController extends Controller
             'peserta.*' => 'exists:users,id',
         ]);
 
+        $paket = Soal::with('mataPelajaran')->findOrFail((int) $request->paket_soal_id);
+        if (($paket->jenis_soal ?? null) !== 'paket') {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Paket soal tidak valid. Silakan pilih paket soal yang benar.');
+        }
+
         DB::beginTransaction();
         try {
             // Create simulasi
             $simulasi = Simulasi::create([
                 'nama_simulasi' => $request->nama_simulasi,
                 'deskripsi' => $request->deskripsi,
-                'mata_pelajaran_id' => $request->mata_pelajaran_id,
+                'mata_pelajaran_id' => $paket->mata_pelajaran_id,
                 'waktu_mulai' => $request->waktu_mulai,
                 'waktu_selesai' => $request->waktu_selesai,
                 'durasi_menit' => $request->durasi_menit,
@@ -160,17 +168,12 @@ class SimulasiController extends Controller
                 'is_active' => true,
             ]);
 
-            // Get all soal from selected mata pelajaran
-            $soals = Soal::where('mata_pelajaran_id', $request->mata_pelajaran_id)->get();
-
-            // Add soal to simulasi_soal
-            foreach ($soals as $index => $soal) {
-                SimulasiSoal::create([
-                    'simulasi_id' => $simulasi->id,
-                    'soal_id' => $soal->id,
-                    'urutan' => $index + 1,
-                ]);
-            }
+            // Attach the selected paket only.
+            SimulasiSoal::create([
+                'simulasi_id' => $simulasi->id,
+                'soal_id' => $paket->id,
+                'urutan' => 1,
+            ]);
 
             // Add peserta to simulasi_peserta so monitor page only shows registered students.
             if (Schema::hasTable('simulasi_peserta')) {

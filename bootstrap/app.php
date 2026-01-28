@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withCommands()
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust reverse proxies (e.g. ngrok) so HTTPS scheme/host are detected correctly.
+        $middleware->prepend(\App\Http\Middleware\TrustProxies::class);
+
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureRole::class,
         ]);

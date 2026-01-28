@@ -444,7 +444,7 @@
                             </div>
                             <div class="form-group">
                                 <label class="form-label required">Paket Soal</label>
-                                <select class="form-select" name="mata_pelajaran_id" required>
+                                <select class="form-select" name="paket_soal_id" required>
                                     <option value="">-- Pilih Paket Soal --</option>
                                     @forelse($paketSoal as $paket)
                                         <option value="{{ $paket['id'] }}">{{ $paket['label'] }}</option>
