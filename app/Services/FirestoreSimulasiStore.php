@@ -44,4 +44,12 @@ class FirestoreSimulasiStore
         $data['id'] = $id;
         $this->client->upsertByField('simulasi', 'id', $id, $data);
     }
+
+    public function deleteById(int $id): void
+    {
+        $docId = $this->client->findDocIdByField('simulasi', 'id', $id);
+        if ($docId) {
+            $this->client->deleteDocument('simulasi', $docId);
+        }
+    }
 }

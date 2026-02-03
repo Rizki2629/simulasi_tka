@@ -1594,19 +1594,7 @@
 
         function selectAnswer(soalId, answer) {
             answers[soalId] = answer;
-            
-            // Save to backend
-            fetch('/simulasi/submit-answer', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify({
-                    soal_id: soalId,
-                    jawaban: answer
-                })
-            });
+            saveAnswer(soalId, answer);
             
             // Update UI
             document.querySelectorAll('.answer-option').forEach(opt => opt.classList.remove('selected'));
@@ -1642,18 +1630,7 @@
                 answerOption.classList.remove('selected');
             }
             
-            // Save to backend
-            fetch('/simulasi/submit-answer', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify({
-                    soal_id: soalId,
-                    jawaban: answers[soalId] // kirim array untuk MCMA
-                })
-            });
+            saveAnswer(soalId, answers[soalId]);
             
             updateSoalGrid();
             saveProgress();
@@ -1662,19 +1639,7 @@
         function selectBenarSalah(pernyataanId, jawaban) {
             // Simpan jawaban benar/salah untuk setiap pernyataan
             answers[pernyataanId] = jawaban;
-            
-            // Save to backend
-            fetch('/simulasi/submit-answer', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify({
-                    soal_id: pernyataanId,
-                    jawaban: jawaban
-                })
-            });
+            saveAnswer(pernyataanId, jawaban);
             
             updateSoalGrid();
             saveProgress();
@@ -1686,21 +1651,7 @@
                 answers[soalId] = {};
             }
             answers[soalId][optionId] = jawaban;
-            
-            // Save to backend
-            // Note: Controller stores array as comma-separated string if passed as array.
-            // For complex BS, we might need to rely on the associative array being handled or just saved.
-            fetch('/simulasi/submit-answer', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify({
-                    soal_id: soalId,
-                    jawaban: answers[soalId]
-                })
-            });
+            saveAnswer(soalId, answers[soalId]);
             
             updateSoalGrid();
             saveProgress();

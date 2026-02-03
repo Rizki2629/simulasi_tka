@@ -38,6 +38,8 @@ Route::middleware(['auth', 'role:admin,guru'])->group(function () {
     // Rekap Nilai Routes
     Route::get('/rekap-nilai', [RekapNilaiController::class, 'index'])->name('rekap-nilai.index');
     Route::get('/rekap-nilai/{simulasi}', [RekapNilaiController::class, 'show'])->name('rekap-nilai.show');
+    Route::get('/rekap-nilai/{nilai}/review', [RekapNilaiController::class, 'review'])->name('rekap-nilai.review');
+    Route::get('/rekap-nilai/{nilai}/download', [RekapNilaiController::class, 'download'])->name('rekap-nilai.download');
     Route::get('/rekap-nilai/export', [RekapNilaiController::class, 'export'])->name('rekap-nilai.export');
 
     // Soal Routes
@@ -53,6 +55,8 @@ Route::middleware(['auth', 'role:admin,guru'])->group(function () {
     // Simulasi Admin Routes
     Route::get('/simulasi/generate', [SimulasiController::class, 'generateSimulasi'])->name('simulasi.generate');
     Route::post('/simulasi/generate', [SimulasiController::class, 'storeSimulasi'])->name('simulasi.store');
+    Route::get('/simulasi/generated-active', [SimulasiController::class, 'generatedActive'])->name('simulasi.generated.active');
+    Route::post('/simulasi/{simulasi}/stop', [SimulasiController::class, 'stopSimulasi'])->name('simulasi.stop');
     Route::get('/simulasi/token', [SimulasiController::class, 'generateToken'])->name('simulasi.token');
     Route::post('/simulasi/token/refresh', [SimulasiController::class, 'refreshToken'])->name('simulasi.token.refresh');
 
@@ -80,6 +84,7 @@ Route::post('/simulasi/student-logout', [SimulasiController::class, 'studentLogo
 Route::post('/simulasi/start-exam', [SimulasiController::class, 'startExam'])->name('simulasi.start.exam');
 Route::get('/simulasi/exam', [SimulasiController::class, 'examInterface'])->name('simulasi.exam');
 Route::post('/simulasi/submit-answer', [SimulasiController::class, 'submitAnswer'])->name('simulasi.submit.answer');
+Route::post('/simulasi/save-answer', [SimulasiController::class, 'saveAnswer'])->name('simulasi.save.answer');
 Route::post('/simulasi/finish-exam', [SimulasiController::class, 'finishExam'])->name('simulasi.finish.exam');
 Route::get('/simulasi/review', [SimulasiController::class, 'review'])->name('simulasi.review');
 Route::post('/simulasi/finish-review', [SimulasiController::class, 'finishReview'])->name('simulasi.finish-review');

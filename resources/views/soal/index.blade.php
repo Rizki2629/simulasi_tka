@@ -1085,7 +1085,11 @@
                         </div>
                         <div class="card-kode">
                             {{ $soal->kode_soal }}
-                            @if($soal->simulasi_soal_count > 0)
+                            @php
+                                $activeSimulasiCount = (int) ($soal->active_simulasi_count ?? 0);
+                                $legacyCount = (int) ($soal->simulasi_soal_count ?? 0);
+                            @endphp
+                            @if($activeSimulasiCount > 0)
                                 <span class="status-badge status-active">
                                     <span class="material-symbols-outlined" style="font-size: 14px;">check_circle</span>
                                     Aktif
@@ -1093,7 +1097,7 @@
                             @else
                                 <span class="status-badge status-available">
                                     <span class="material-symbols-outlined" style="font-size: 14px;">radio_button_unchecked</span>
-                                    Tersedia
+                                    {{ $legacyCount > 0 ? 'Pernah Digenerate' : 'Tersedia' }}
                                 </span>
                             @endif
                         </div>

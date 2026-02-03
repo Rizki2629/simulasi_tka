@@ -12,6 +12,7 @@ use App\Models\SimulasiSoal;
 use App\Models\Nilai;
 use App\Services\PenilaianService;
 use App\Services\FirestoreExamSessionStore;
+use App\Services\FirestoreJawabanPesertaStore;
 use App\Services\FirestoreMataPelajaranStore;
 use App\Services\FirestoreSimulasiStore;
 use App\Services\FirestoreTokenStore;
@@ -70,6 +71,67 @@ class SimulasiController extends Controller
 
         $fallback = (float) ($hasil['jumlah_soal'] ?? 0);
         return $fallback > 0 ? $fallback : 1.0;
+    }
+
+    /**
+     * @param mixed $value
+     * @return array<int, mixed>
+     */
+    private function normalizeDetailJawaban(mixed $value): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_string($value) && $value !== '') {
+            $decoded = json_decode($value, true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+
+            if (is_string($decoded) && $decoded !== '') {
+                $decoded2 = json_decode($decoded, true);
+                if (is_array($decoded2)) {
+                    return $decoded2;
+                }
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * Estimate the expected number of questions from DB for the given soal IDs.
+     * For paket soal, this counts its sub-soal entries.
+     *
+     * @param array<int, mixed> $soalIds
+     */
+    private function expectedJumlahSoalFromDb(array $soalIds): int
+    {
+        $ids = [];
+        foreach ($soalIds as $id) {
+            $id = (int) $id;
+            if ($id > 0) {
+                $ids[] = $id;
+            }
+        }
+        $ids = array_values(array_unique($ids));
+        if (empty($ids)) {
+            return 0;
+        }
+
+        $rows = Soal::query()
+            ->whereIn('id', $ids)
+            ->withCount('subSoal')
+            ->get(['id']);
+
+        $sum = 0;
+        foreach ($rows as $soal) {
+            $sub = (int) ($soal->sub_soal_count ?? 0);
+            $sum += max(1, $sub);
+        }
+
+        return $sum;
     }
 
     private function syncUserToFirestore(User $user): void
@@ -134,6 +196,26 @@ class SimulasiController extends Controller
         return view('simulasi.generate', compact('students', 'paketSoal'));
     }
 
+    public function generatedActive()
+    {
+        $now = now();
+
+        $simulasis = Simulasi::query()
+            ->where('is_active', true)
+            ->with([
+                'mataPelajaran',
+                'creator',
+                'simulasiSoal.soal' => function ($q) {
+                    $q->withCount('subSoal');
+                },
+            ])
+            ->withCount('simulasiPeserta')
+            ->orderByDesc('waktu_mulai')
+            ->get();
+
+        return view('simulasi.generated-active', compact('simulasis', 'now'));
+    }
+
     public function storeSimulasi(Request $request)
     {
         $request->validate([
@@ -152,6 +234,20 @@ class SimulasiController extends Controller
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Paket soal tidak valid. Silakan pilih paket soal yang benar.');
+        }
+
+        // Rule: prevent generating the same paket if there is still an active simulasi using it.
+        $existingActive = Simulasi::query()
+            ->where('is_active', true)
+            ->whereHas('simulasiSoal', function ($q) use ($paket) {
+                $q->where('soal_id', (int) $paket->id);
+            })
+            ->exists();
+
+        if ($existingActive) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Soal sudah digenerate, jika ingin generate ulang harap hentikan simulasi yang telah dibuat sebelumnya');
         }
 
         DB::beginTransaction();
@@ -239,6 +335,18 @@ class SimulasiController extends Controller
             DB::rollBack();
             return redirect()->back()->with('error', 'Gagal membuat simulasi: ' . $e->getMessage())->withInput();
         }
+    }
+
+    public function stopSimulasi(Simulasi $simulasi)
+    {
+        if (!$simulasi->is_active) {
+            return redirect()->back()->with('success', 'Simulasi sudah dihentikan.');
+        }
+
+        $simulasi->is_active = false;
+        $simulasi->save();
+
+        return redirect()->back()->with('success', 'Simulasi berhasil dihentikan.');
     }
 
     public function generateToken()
@@ -1127,21 +1235,61 @@ class SimulasiController extends Controller
     {
         $request->validate([
             'soal_id' => 'required',
-            'jawaban' => 'required', // Bisa string atau array untuk MCMA
+            'jawaban' => 'present', // Bisa string, array list (MCMA), atau map (Benar/Salah)
         ]);
 
         $answers = Session::get('exam_answers', []);
-        
-        // Jawaban bisa berupa string (radio) atau array (checkbox untuk MCMA)
-        $jawaban = $request->jawaban;
-        
-        // Jika array, konversi ke JSON string atau join dengan koma
-        if (is_array($jawaban)) {
-            $jawaban = implode(',', $jawaban);
+        if (!is_array($answers)) {
+            $answers = [];
         }
-        
-        $answers[$request->soal_id] = $jawaban;
+
+        $jawaban = $request->jawaban;
+
+        // Normalize: list-array answers (MCMA) => comma string.
+        // Keep associative array answers intact (Benar/Salah per option).
+        if (is_array($jawaban)) {
+            if (array_is_list($jawaban)) {
+                $jawaban = implode(',', $jawaban);
+            }
+        }
+
+        $answers[$request->input('soal_id')] = $jawaban;
         Session::put('exam_answers', $answers);
+
+        // Best-effort: persist per-soal answers to Firestore to avoid loss on session issues.
+        $studentId = (int) Session::get('student_id');
+        $simulasiId = (int) ($request->input('simulasi_id') ?? 0);
+        if ($simulasiId <= 0) {
+            $examData = Session::get('exam_data', []);
+            if (is_array($examData)) {
+                $simulasiId = (int) ($examData['simulasi_id'] ?? 0);
+            }
+        }
+
+        if ($this->firestoreStudentPrimary() && $studentId > 0 && $simulasiId > 0) {
+            try {
+                $simulasiPesertaId = null;
+                $examData = Session::get('exam_data', []);
+                if (is_array($examData) && !empty($examData['simulasi_peserta_id'])) {
+                    $simulasiPesertaId = (int) $examData['simulasi_peserta_id'];
+                }
+                if (!$simulasiPesertaId) {
+                    $simulasiPesertaId = (int) (DB::table('simulasi_peserta')
+                        ->where('simulasi_id', $simulasiId)
+                        ->where('user_id', $studentId)
+                        ->value('id') ?? 0);
+                }
+
+                /** @var FirestoreJawabanPesertaStore $js */
+                $js = app(FirestoreJawabanPesertaStore::class);
+                $js->upsert($studentId, $simulasiId, (int) $request->input('soal_id'), [
+                    'simulasi_peserta_id' => $simulasiPesertaId ?: null,
+                    'jawaban_user' => $jawaban,
+                ]);
+            } catch (\Throwable $e) {
+                // ignore Firestore persistence failures
+            }
+        }
 
         return response()->json(['success' => true]);
     }
@@ -1255,6 +1403,26 @@ class SimulasiController extends Controller
                 }
             }
 
+            // If answers are missing, try to load cached per-soal answers from Firestore.
+            if ($this->firestoreStudentPrimary()) {
+                try {
+                    /** @var FirestoreJawabanPesertaStore $js */
+                    $js = app(FirestoreJawabanPesertaStore::class);
+                    $cached = $js->listByUserSimulasi((int) $user->id, (int) $simulasiPeserta->simulasi_id, 2000);
+                    foreach ($cached as $row) {
+                        $sid = (int) ($row['soal_id'] ?? 0);
+                        if ($sid <= 0) {
+                            continue;
+                        }
+                        if (!array_key_exists($sid, $jawabanPeserta) || $jawabanPeserta[$sid] === null || $jawabanPeserta[$sid] === '') {
+                            $jawabanPeserta[$sid] = $row['jawaban_user'] ?? null;
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    // ignore
+                }
+            }
+
             // Hitung nilai
             if ($this->firestoreStudentPrimary()) {
                 /** @var \App\Services\FirestorePenilaianService $fps */
@@ -1262,8 +1430,10 @@ class SimulasiController extends Controller
                 $hasilPenilaian = $fps->hitungNilai($jawabanPeserta, $soalIds);
 
                 // Fallback: Firestore-first might be enabled, but Firestore may not have soal data yet.
-                // If Firestore returns zero questions, recompute using DB logic.
-                if ((int) ($hasilPenilaian['jumlah_soal'] ?? 0) === 0) {
+                // If Firestore returns too few questions (e.g. paket treated as 1), recompute using DB logic.
+                $expectedJumlah = $this->expectedJumlahSoalFromDb($soalIds);
+                $fsJumlah = (int) ($hasilPenilaian['jumlah_soal'] ?? 0);
+                if ($fsJumlah === 0 || ($expectedJumlah > 0 && $fsJumlah < $expectedJumlah)) {
                     try {
                         $fallbackService = new PenilaianService();
                         $fallback = $fallbackService->hitungNilai($jawabanPeserta, $soalIds);
@@ -1302,7 +1472,7 @@ class SimulasiController extends Controller
                     'jumlah_benar' => $hasilPenilaian['jumlah_benar'],
                     'jumlah_salah' => $hasilPenilaian['jumlah_salah'],
                     'jumlah_soal' => $hasilPenilaian['jumlah_soal'],
-                    'detail_jawaban' => json_encode($hasilPenilaian['detail_jawaban']),
+                    'detail_jawaban' => $hasilPenilaian['detail_jawaban'],
                 ]
             );
 
@@ -1447,15 +1617,136 @@ class SimulasiController extends Controller
     public function review(PenilaianService $penilaianService)
     {
         $reviewData = Session::get('review_data');
+
+        // Fallback source: finishExam stores a compact summary in hasil_ujian.
+        $hasilUjian = Session::get('hasil_ujian');
+        if (!is_array($hasilUjian)) {
+            $hasilUjian = null;
+        }
+
+        // Get student_id early to check for latest nilai as fallback
+        $studentId = (int) Session::get('student_id');
+        $latestNilai = null;
+        if ($studentId > 0) {
+            $latestNilai = Nilai::query()
+                ->where('user_id', $studentId)
+                ->latest()
+                ->first();
+        }
         
         if (!$reviewData) {
-            return redirect()->route('simulasi.student.dashboard')
-                ->with('error', 'Data review tidak ditemukan');
+            // If review_data is missing but hasil_ujian exists, allow rendering anyway.
+            if ($hasilUjian) {
+                $reviewData = [
+                    'soal_ids' => [],
+                    'jawaban' => Session::get('exam_answers', []),
+                    'hasil' => [
+                        'nilai_total' => $hasilUjian['nilai_total'] ?? 0,
+                        'jumlah_benar' => $hasilUjian['jumlah_benar'] ?? 0,
+                        'jumlah_salah' => $hasilUjian['jumlah_salah'] ?? 0,
+                        'jumlah_soal' => $hasilUjian['jumlah_soal'] ?? 0,
+                        'detail_jawaban' => $hasilUjian['detail_jawaban'] ?? [],
+                    ],
+                    'simulasi' => [
+                        'nama' => $hasilUjian['nama_simulasi'] ?? '-',
+                        'mata_pelajaran' => $hasilUjian['mata_pelajaran'] ?? '-',
+                    ],
+                ];
+            } elseif ($latestNilai) {
+                // If no session data but student has nilai, load from database
+                $detailJawaban = $this->normalizeDetailJawaban($latestNilai->detail_jawaban ?? null);
+                $sim = Simulasi::with('mataPelajaran')->find((int) $latestNilai->simulasi_id);
+                $reviewData = [
+                    'soal_ids' => [],
+                    'jawaban' => Session::get('exam_answers', []),
+                    'hasil' => [
+                        'nilai_total' => (float) ($latestNilai->nilai_total ?? 0),
+                        'jumlah_benar' => (int) ($latestNilai->jumlah_benar ?? 0),
+                        'jumlah_salah' => (int) ($latestNilai->jumlah_salah ?? 0),
+                        'jumlah_soal' => (int) ($latestNilai->jumlah_soal ?? 0),
+                        'detail_jawaban' => $detailJawaban,
+                    ],
+                    'simulasi' => [
+                        'nama' => $sim?->nama_simulasi ?? '-',
+                        'mata_pelajaran' => $sim?->mataPelajaran?->nama_mata_pelajaran ?? '-',
+                    ],
+                ];
+            } else {
+                return redirect()->route('simulasi.student.dashboard')
+                    ->with('error', 'Data review tidak ditemukan');
+            }
+        }
+
+        // If review_data exists but empty/invalid, or session was refreshed, load latest nilai for student.
+        $needsNilaiFallback = !is_array($reviewData)
+            || empty($reviewData['hasil'])
+            || !is_array($reviewData['hasil'])
+            || empty($reviewData['hasil']['detail_jawaban']);
+        if ($needsNilaiFallback && $latestNilai) {
+            $detailJawaban = $this->normalizeDetailJawaban($latestNilai->detail_jawaban ?? null);
+            $sim = Simulasi::with('mataPelajaran')->find((int) $latestNilai->simulasi_id);
+            $reviewData = [
+                'soal_ids' => [],
+                'jawaban' => Session::get('exam_answers', []),
+                'hasil' => [
+                    'nilai_total' => (float) ($latestNilai->nilai_total ?? 0),
+                    'jumlah_benar' => (int) ($latestNilai->jumlah_benar ?? 0),
+                    'jumlah_salah' => (int) ($latestNilai->jumlah_salah ?? 0),
+                    'jumlah_soal' => (int) ($latestNilai->jumlah_soal ?? 0),
+                    'detail_jawaban' => $detailJawaban,
+                ],
+                'simulasi' => [
+                    'nama' => $sim?->nama_simulasi ?? '-',
+                    'mata_pelajaran' => $sim?->mataPelajaran?->nama_mata_pelajaran ?? '-',
+                ],
+            ];
+        }
+
+        $examData = Session::get('exam_data', []);
+        $simulasiId = 0;
+        if (is_array($examData)) {
+            $simulasiId = (int) ($examData['simulasi_id'] ?? 0);
+        }
+        if ($simulasiId <= 0 && $hasilUjian && !empty($hasilUjian['nilai_id'])) {
+            $nilaiRow = Nilai::find((int) $hasilUjian['nilai_id']);
+            if ($nilaiRow) {
+                $simulasiId = (int) $nilaiRow->simulasi_id;
+            }
+        }
+        if ($simulasiId <= 0 && !empty($reviewData['hasil'])) {
+            $nilaiRow = null;
+            if (!empty($reviewData['hasil']['nilai_id'])) {
+                $nilaiRow = Nilai::find((int) $reviewData['hasil']['nilai_id']);
+            }
+            if ($nilaiRow) {
+                $simulasiId = (int) $nilaiRow->simulasi_id;
+            }
         }
 
         $jawaban = $reviewData['jawaban'] ?? [];
         if (!is_array($jawaban)) {
             $jawaban = [];
+        }
+
+        // If jawaban is empty, try to load from Firestore cached per-soal answers.
+        if (empty($jawaban) && $this->firestoreStudentPrimary()) {
+            $studentId = (int) Session::get('student_id');
+            if ($studentId > 0 && $simulasiId > 0) {
+                try {
+                    /** @var FirestoreJawabanPesertaStore $js */
+                    $js = app(FirestoreJawabanPesertaStore::class);
+                    $cached = $js->listByUserSimulasi($studentId, $simulasiId, 2000);
+                    foreach ($cached as $row) {
+                        $sid = (int) ($row['soal_id'] ?? 0);
+                        if ($sid <= 0) {
+                            continue;
+                        }
+                        $jawaban[$sid] = $row['jawaban_user'] ?? null;
+                    }
+                } catch (\Throwable $e) {
+                    // ignore
+                }
+            }
         }
 
         $soalIds = $reviewData['soal_ids'] ?? [];
@@ -1473,8 +1764,39 @@ class SimulasiController extends Controller
             $soalIds = array_values($soalIds);
         }
 
+        // Fallback: if still empty and simulasi_id known, derive soal IDs from simulasi.
+        if (empty($soalIds) && $simulasiId > 0) {
+            $simWith = Simulasi::with('simulasiSoal')->find($simulasiId);
+            if ($simWith && $simWith->simulasiSoal) {
+                $soalIds = $simWith->simulasiSoal->pluck('soal_id')->filter()->map(fn ($v) => (int) $v)->unique()->values()->all();
+            }
+        }
+
         // Fallback: jika soal_ids kosong, coba derive dari detail_jawaban yang tersimpan.
         $savedHasil = $reviewData['hasil'] ?? null;
+        if (is_array($savedHasil) && isset($savedHasil['detail_jawaban'])) {
+            $savedHasil['detail_jawaban'] = $this->normalizeDetailJawaban($savedHasil['detail_jawaban']);
+        }
+        if ($latestNilai && (int) ($latestNilai->jumlah_soal ?? 0) > 0) {
+            $latestDetail = $this->normalizeDetailJawaban($latestNilai->detail_jawaban ?? null);
+            $savedHasil = [
+                'nilai_total' => (float) ($latestNilai->nilai_total ?? 0),
+                'jumlah_benar' => (int) ($latestNilai->jumlah_benar ?? 0),
+                'jumlah_salah' => (int) ($latestNilai->jumlah_salah ?? 0),
+                'jumlah_soal' => (int) ($latestNilai->jumlah_soal ?? 0),
+                'detail_jawaban' => $latestDetail,
+            ];
+
+            if (empty($soalIds) && !empty($latestDetail)) {
+                $soalIds = collect($latestDetail)
+                    ->pluck('soal_id')
+                    ->filter(fn ($v) => (int) $v > 0)
+                    ->map(fn ($v) => (int) $v)
+                    ->unique()
+                    ->values()
+                    ->all();
+            }
+        }
         if (empty($soalIds) && is_array($savedHasil) && isset($savedHasil['detail_jawaban']) && is_array($savedHasil['detail_jawaban'])) {
             $soalIds = collect($savedHasil['detail_jawaban'])
                 ->pluck('soal_id')
@@ -1484,27 +1806,47 @@ class SimulasiController extends Controller
                 ->values()
                 ->all();
         }
-        
-        // RE-CALCULATE to ensure latest logic (e.g. Table View / Detail generation) is applied
-        // regardless of what was saved in Session previously
-        if ($this->firestoreStudentPrimary()) {
-            /** @var \App\Services\FirestorePenilaianService $fps */
-            $fps = app(\App\Services\FirestorePenilaianService::class);
-            $hasil = $fps->hitungNilai($jawaban, $soalIds);
 
-            // Fallback: if Firestore scoring yields no questions, use DB scoring.
-            if ((int) ($hasil['jumlah_soal'] ?? 0) === 0) {
-                try {
-                    $fallback = $penilaianService->hitungNilai($jawaban, $soalIds);
-                    if ((int) ($fallback['jumlah_soal'] ?? 0) > 0) {
-                        $hasil = $fallback;
+        // Extra fallback: derive IDs from hasil_ujian (more reliable across session changes).
+        if (empty($soalIds) && $hasilUjian && isset($hasilUjian['detail_jawaban']) && is_array($hasilUjian['detail_jawaban'])) {
+            $soalIds = collect($hasilUjian['detail_jawaban'])
+                ->pluck('soal_id')
+                ->filter(fn ($v) => (int) $v > 0)
+                ->map(fn ($v) => (int) $v)
+                ->unique()
+                ->values()
+                ->all();
+        }
+        
+        // If no answers are available or recalculation would be empty, use saved hasil directly.
+        $hasil = null;
+        // ALWAYS use savedHasil if it exists and has valid data (from latestNilai or reviewData)
+        if (is_array($savedHasil) && (int) ($savedHasil['jumlah_soal'] ?? 0) > 0) {
+            $hasil = $savedHasil;
+        }
+
+        if (!$hasil) {
+            // RE-CALCULATE to ensure latest logic (e.g. Table View / Detail generation) is applied
+            // regardless of what was saved in Session previously
+            if ($this->firestoreStudentPrimary()) {
+                /** @var \App\Services\FirestorePenilaianService $fps */
+                $fps = app(\App\Services\FirestorePenilaianService::class);
+                $hasil = $fps->hitungNilai($jawaban, $soalIds);
+
+                // Fallback: if Firestore scoring yields no questions, use DB scoring.
+                if ((int) ($hasil['jumlah_soal'] ?? 0) === 0) {
+                    try {
+                        $fallback = $penilaianService->hitungNilai($jawaban, $soalIds);
+                        if ((int) ($fallback['jumlah_soal'] ?? 0) > 0) {
+                            $hasil = $fallback;
+                        }
+                    } catch (\Throwable $e) {
+                        // keep Firestore result
                     }
-                } catch (\Throwable $e) {
-                    // keep Firestore result
                 }
+            } else {
+                $hasil = $penilaianService->hitungNilai($jawaban, $soalIds);
             }
-        } else {
-            $hasil = $penilaianService->hitungNilai($jawaban, $soalIds);
         }
 
         // If recalculation unexpectedly yields no questions, fall back to saved hasil.
@@ -1521,10 +1863,33 @@ class SimulasiController extends Controller
             }
         }
 
+        // If still empty, fall back to hasil_ujian.
+        if ((int) ($hasil['jumlah_soal'] ?? 0) === 0 && $hasilUjian && (int) ($hasilUjian['jumlah_soal'] ?? 0) > 0) {
+            $hasil = [
+                'nilai_total' => $hasilUjian['nilai_total'] ?? 0,
+                'jumlah_benar' => $hasilUjian['jumlah_benar'] ?? 0,
+                'jumlah_salah' => $hasilUjian['jumlah_salah'] ?? 0,
+                'jumlah_soal' => $hasilUjian['jumlah_soal'] ?? 0,
+                'detail_jawaban' => $hasilUjian['detail_jawaban'] ?? [],
+            ];
+
+            if (empty($soalIds) && isset($hasil['detail_jawaban']) && is_array($hasil['detail_jawaban'])) {
+                $soalIds = collect($hasil['detail_jawaban'])
+                    ->pluck('soal_id')
+                    ->filter(fn ($v) => (int) $v > 0)
+                    ->map(fn ($v) => (int) $v)
+                    ->unique()
+                    ->values()
+                    ->all();
+            }
+        }
+
         // Load soal dengan jawaban (gunakan soalIds final)
-        $soals = Soal::with(['subSoal.pilihanJawaban', 'pilihanJawaban'])
-            ->when(!empty($soalIds), fn ($q) => $q->whereIn('id', $soalIds))
-            ->get();
+        $soals = empty($soalIds)
+            ? collect()
+            : Soal::with(['subSoal.pilihanJawaban', 'pilihanJawaban'])
+                ->whereIn('id', $soalIds)
+                ->get();
         
         // Calculate score + percent value
         $skorPoin = $this->computeSkorPoin($hasil);
@@ -1772,43 +2137,88 @@ class SimulasiController extends Controller
     {
         // Get all simulasi with participant and completion counts
         $simulasiList = Simulasi::with('mataPelajaran')
+            ->where('is_active', true)
             ->orderBy('waktu_mulai', 'desc')
             ->get();
 
         // Add participant and completed counts
-        if ($this->firestoreStudentPrimary()) {
-            try {
-                /** @var \App\Services\FirestoreSimulasiPesertaStore $sp */
-                $sp = app(\App\Services\FirestoreSimulasiPesertaStore::class);
-                /** @var \App\Services\FirestoreNilaiStore $ns */
-                $ns = app(\App\Services\FirestoreNilaiStore::class);
-
-                foreach ($simulasiList as $simulasi) {
+        foreach ($simulasiList as $simulasi) {
+            // Count participants from simulasi_peserta (registered students)
+            if ($this->firestoreStudentPrimary()) {
+                try {
+                    /** @var \App\Services\FirestoreSimulasiPesertaStore $sp */
+                    $sp = app(\App\Services\FirestoreSimulasiPesertaStore::class);
                     $pesertaRows = $sp->listBySimulasiId((int) $simulasi->id, 2000);
                     $simulasi->participant_count = collect($pesertaRows)
                         ->pluck('user_id')
                         ->filter(fn ($v) => is_numeric($v) && (int) $v > 0)
                         ->unique()
                         ->count();
-
-                    $nilaiRows = $ns->listBySimulasiId((int) $simulasi->id, 2000);
-                    $simulasi->completed_count = count($nilaiRows);
-                }
-            } catch (\Throwable $e) {
-                foreach ($simulasiList as $simulasi) {
-                    $simulasi->participant_count = Nilai::where('simulasi_id', $simulasi->id)
+                } catch (\Throwable $e) {
+                    $simulasi->participant_count = DB::table('simulasi_peserta')
+                        ->where('simulasi_id', $simulasi->id)
                         ->distinct('user_id')
                         ->count('user_id');
-                    $simulasi->completed_count = Nilai::where('simulasi_id', $simulasi->id)->count();
                 }
-            }
-        } else {
-            foreach ($simulasiList as $simulasi) {
-                $simulasi->participant_count = Nilai::where('simulasi_id', $simulasi->id)
+            } else {
+                $simulasi->participant_count = DB::table('simulasi_peserta')
+                    ->where('simulasi_id', $simulasi->id)
                     ->distinct('user_id')
                     ->count('user_id');
-                $simulasi->completed_count = Nilai::where('simulasi_id', $simulasi->id)->count();
             }
+
+            // Count completed students: those with nilai OR status='selesai' in simulasi_peserta
+            $completedUserIds = collect();
+            
+            // Get user IDs from nilai (both Firestore and SQLite)
+            if ($this->firestoreStudentPrimary()) {
+                try {
+                    /** @var \App\Services\FirestoreNilaiStore $ns */
+                    $ns = app(\App\Services\FirestoreNilaiStore::class);
+                    $nilaiRows = $ns->listBySimulasiId((int) $simulasi->id, 2000);
+                    $firestoreUserIds = collect($nilaiRows)
+                        ->pluck('user_id')
+                        ->filter(fn ($v) => is_numeric($v) && (int) $v > 0)
+                        ->map(fn ($v) => (int) $v);
+                    $completedUserIds = $completedUserIds->merge($firestoreUserIds);
+                } catch (\Throwable $e) {
+                    // ignore
+                }
+            }
+            
+            // Also check SQLite nilai
+            $sqliteNilaiUserIds = Nilai::where('simulasi_id', $simulasi->id)
+                ->pluck('user_id')
+                ->filter(fn ($v) => (int) $v > 0)
+                ->map(fn ($v) => (int) $v);
+            $completedUserIds = $completedUserIds->merge($sqliteNilaiUserIds);
+            
+            // Also check simulasi_peserta with status='selesai' (both Firestore and SQLite)
+            if ($this->firestoreStudentPrimary()) {
+                try {
+                    /** @var \App\Services\FirestoreSimulasiPesertaStore $sp */
+                    $sp = app(\App\Services\FirestoreSimulasiPesertaStore::class);
+                    $pesertaRows = $sp->listBySimulasiId((int) $simulasi->id, 2000);
+                    $firestoreSelesaiUserIds = collect($pesertaRows)
+                        ->filter(fn ($row) => ($row['status'] ?? '') === 'selesai')
+                        ->pluck('user_id')
+                        ->filter(fn ($v) => is_numeric($v) && (int) $v > 0)
+                        ->map(fn ($v) => (int) $v);
+                    $completedUserIds = $completedUserIds->merge($firestoreSelesaiUserIds);
+                } catch (\Throwable $e) {
+                    // ignore
+                }
+            }
+            
+            $sqliteSelesaiUserIds = DB::table('simulasi_peserta')
+                ->where('simulasi_id', $simulasi->id)
+                ->where('status', 'selesai')
+                ->pluck('user_id')
+                ->filter(fn ($v) => (int) $v > 0)
+                ->map(fn ($v) => (int) $v);
+            $completedUserIds = $completedUserIds->merge($sqliteSelesaiUserIds);
+            
+            $simulasi->completed_count = $completedUserIds->unique()->count();
         }
 
         return view('simulasi.exam-list', compact('simulasiList'));
@@ -1895,6 +2305,58 @@ class SimulasiController extends Controller
                 ->keyBy('user_id');
         }
 
+        // Get peserta status (from Firestore if available, else SQLite)
+        $pesertaRecords = collect();
+        if ($this->firestoreStudentPrimary()) {
+            try {
+                /** @var \App\Services\FirestoreSimulasiPesertaStore $sp */
+                $sp = app(\App\Services\FirestoreSimulasiPesertaStore::class);
+                $rows = $sp->listBySimulasiId((int) $simulasiId, 2000);
+                $pesertaRecords = collect($rows)
+                    ->map(function ($row) {
+                        $row = is_array($row) ? $row : [];
+                        $row = array_merge([
+                            'user_id' => 0,
+                            'status' => null,
+                            'waktu_mulai' => null,
+                            'waktu_selesai' => null,
+                            'nilai' => null,
+                        ], $row);
+
+                        foreach (['waktu_mulai', 'waktu_selesai'] as $k) {
+                            $v = $row[$k] ?? null;
+                            if ($v && !($v instanceof \Carbon\Carbon)) {
+                                try {
+                                    $row[$k] = \Carbon\Carbon::parse($v);
+                                } catch (\Throwable $e) {
+                                    $row[$k] = null;
+                                }
+                            }
+                        }
+
+                        return (object) $row;
+                    })
+                    ->keyBy('user_id');
+            } catch (\Throwable $e) {
+                $pesertaRecords = collect();
+            }
+        }
+
+        if ($pesertaRecords->isEmpty() && Schema::hasTable('simulasi_peserta')) {
+            $pesertaRecords = DB::table('simulasi_peserta')
+                ->where('simulasi_id', $simulasiId)
+                ->get()
+                ->keyBy('user_id');
+        }
+
+        $sqlitePesertaRecords = collect();
+        if (Schema::hasTable('simulasi_peserta')) {
+            $sqlitePesertaRecords = DB::table('simulasi_peserta')
+                ->where('simulasi_id', $simulasiId)
+                ->get()
+                ->keyBy('user_id');
+        }
+
         // Get nilai records
         if ($this->firestoreStudentPrimary()) {
             try {
@@ -1939,19 +2401,48 @@ class SimulasiController extends Controller
                 ->keyBy('user_id');
         }
 
+        $sqliteNilaiRecords = Nilai::where('simulasi_id', $simulasiId)
+            ->with('user')
+            ->get()
+            ->keyBy('user_id');
+
         // Get unique classes (from registered students)
         $classes = $students->pluck('rombongan_belajar')->unique()->sort()->values();
 
         // Combine data
-        $studentData = $students->map(function ($student) use ($examSessions, $nilaiRecords, $simulasiId) {
+        $studentData = $students->map(function ($student) use ($examSessions, $nilaiRecords, $pesertaRecords, $sqlitePesertaRecords, $sqliteNilaiRecords) {
             $session = $examSessions->get($student->id);
             $nilai = $nilaiRecords->get($student->id);
+            $peserta = $pesertaRecords->get($student->id);
+            $sqlitePeserta = $sqlitePesertaRecords->get($student->id);
+            $sqliteNilai = $sqliteNilaiRecords->get($student->id);
+
+            if (!$nilai && $sqliteNilai) {
+                $nilai = $sqliteNilai;
+            }
+
+            $pesertaStatus = null;
+            if ($peserta) {
+                $pesertaStatus = (string) ($peserta->status ?? '');
+            }
+            $sqliteStatus = null;
+            if ($sqlitePeserta) {
+                $sqliteStatus = (string) ($sqlitePeserta->status ?? '');
+            }
 
             // Determine status
-            if ($nilai) {
+            if ($nilai || $pesertaStatus === 'selesai' || $sqliteStatus === 'selesai') {
                 $status = 'completed';
                 $statusText = 'Selesai';
                 $statusColor = 'success';
+            } elseif ($pesertaStatus === 'sedang_mengerjakan' || $sqliteStatus === 'sedang_mengerjakan') {
+                $status = 'working';
+                $statusText = 'Sedang Mengerjakan';
+                $statusColor = 'warning';
+            } elseif ($pesertaStatus === 'belum_mulai' || $sqliteStatus === 'belum_mulai') {
+                $status = 'not_started';
+                $statusText = 'Belum Login';
+                $statusColor = 'secondary';
             } elseif ($session) {
                 if ($session->status === 'in_progress') {
                     $status = 'working';

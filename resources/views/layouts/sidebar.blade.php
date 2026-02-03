@@ -19,6 +19,7 @@
             @php
                 $isSimulasiTkaExpanded = request()->is('soal*')
                     || request()->is('simulasi/generate*')
+                    || request()->is('simulasi/generated-active*')
                     || request()->is('simulasi/token*');
             @endphp
 
@@ -52,6 +53,9 @@
                 </a>
                 <a href="/simulasi/generate" class="submenu-item {{ request()->is('simulasi/generate') ? 'active' : '' }}">
                     <span class="menu-item-text">Generate Simulasi</span>
+                </a>
+                <a href="/simulasi/generated-active" class="submenu-item {{ request()->is('simulasi/generated-active') ? 'active' : '' }}">
+                    <span class="menu-item-text">Daftar Simulasi Aktif</span>
                 </a>
                 <a href="/simulasi/token" class="submenu-item {{ request()->is('simulasi/token') ? 'active' : '' }}">
                     <span class="menu-item-text">Generate Token</span>

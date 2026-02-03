@@ -19,10 +19,23 @@ class SoalController extends Controller
 {
     public function index()
     {
+        $activeCounts = DB::table('simulasi_soal')
+            ->join('simulasi', 'simulasi.id', '=', 'simulasi_soal.simulasi_id')
+            ->where('simulasi.is_active', true)
+            ->select('simulasi_soal.soal_id', DB::raw('COUNT(*) as cnt'))
+            ->groupBy('simulasi_soal.soal_id')
+            ->pluck('cnt', 'soal_id');
+
         try {
             $rows = app(SoalFirestoreRepository::class)->listAll();
             if (!empty($rows)) {
                 $soals = app(SoalViewAdapter::class)->hydrateSoalList($rows);
+
+                foreach ($soals as $soal) {
+                    $id = (int) ($soal->id ?? 0);
+                    $soal->active_simulasi_count = (int) ($activeCounts[$id] ?? 0);
+                }
+
                 return view('soal.index', compact('soals'));
             }
         } catch (\Throwable $e) {
@@ -33,6 +46,10 @@ class SoalController extends Controller
                         ->orderBy('created_at', 'desc')
                         ->get();
 
+            foreach ($soals as $soal) {
+                $soal->active_simulasi_count = (int) ($activeCounts[$soal->id] ?? 0);
+            }
+
             return view('soal.index', compact('soals'));
         }
 
@@ -40,6 +57,10 @@ class SoalController extends Controller
                     ->withCount('simulasiSoal')
                     ->orderBy('created_at', 'desc')
                     ->get();
+
+        foreach ($soals as $soal) {
+            $soal->active_simulasi_count = (int) ($activeCounts[$soal->id] ?? 0);
+        }
 
         return view('soal.index', compact('soals'));
     }

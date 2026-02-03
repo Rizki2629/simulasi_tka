@@ -139,7 +139,7 @@
             <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-purple-500 flex items-center justify-between">
                 <div>
                     <p class="text-sm text-slate-500 font-medium">NILAI AKHIR</p>
-                    <p class="text-3xl font-bold text-slate-800">{{ (int) round($nilai ?? 0) }}</p>
+                    <p class="text-3xl font-bold text-slate-800">{{ $nilaiAkhir ?? 0 }}</p>
                     <p class="text-xs text-slate-400 mt-1">Rumus: round((skor/skor maksimal) * 100)</p>
                 </div>
                 <div class="bg-purple-50 p-3 rounded-xl">

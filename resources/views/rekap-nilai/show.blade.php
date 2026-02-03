@@ -10,6 +10,7 @@
 @endphp
 
 @push('styles')
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
     <style>
         .back-btn {
             display: inline-flex;
@@ -134,6 +135,31 @@
 
         .btn-primary:hover {
             background: #5a1e2b;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+        
+        .btn-info {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        .btn-info:hover {
+            background: #2563eb;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+            border-color: #10b981;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
         }
 
         table {
@@ -343,6 +369,7 @@
                                     <th>Waktu Mengerjakan</th>
                                     <th>Total Soal</th>
                                     <th>Nilai</th>
+                                    <th style="width: 200px;">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -364,23 +391,52 @@
                                     <td>{{ $nilai->created_at->format('d M Y, H:i') }}</td>
                                     <td>
                                         @php
-                                            // Calculate time based on exam duration - assuming created_at is when they finished
-                                            // For now, show placeholder until we track actual start time
-                                            $minutes = rand(10, 20); // Temporary - will be replaced with actual tracking
-                                            $seconds = rand(0, 59);
+                                            $peserta = $pesertaByUserId[$nilai->user_id] ?? null;
+                                            $mulai = $peserta?->waktu_mulai;
+                                            $selesai = $peserta?->waktu_selesai;
+
+                                            $durSeconds = null;
+                                            if ($mulai && $selesai) {
+                                                $durSeconds = $mulai->diffInSeconds($selesai);
+                                            }
+
+                                            if ($durSeconds === null) {
+                                                echo '-';
+                                            } else {
+                                                $m = intdiv($durSeconds, 60);
+                                                $s = $durSeconds % 60;
+                                                echo $m . ' menit ' . $s . ' detik';
+                                            }
                                         @endphp
-                                        {{ $minutes }} menit {{ $seconds }} detik
                                     </td>
-                                    <td>{{ $nilai->jumlah_soal }}</td>
+                                    <td>{{ $totalSoalSimulasi ?? $nilai->jumlah_soal }}</td>
                                     <td>
                                         <span class="score-cell {{ $nilai->nilai_total >= 70 ? 'score-high' : ($nilai->nilai_total >= 50 ? 'score-medium' : 'score-low') }}">
                                             {{ number_format($nilai->nilai_total, 1) }}
                                         </span>
                                     </td>
+                                    <td>
+                                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                            <a href="{{ route('rekap-nilai.review', $nilai->id) }}" 
+                                               class="btn btn-sm btn-info" 
+                                               title="Lihat detail jawaban siswa"
+                                               style="padding: 6px 12px; font-size: 13px; white-space: nowrap;">
+                                                <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">visibility</span>
+                                                Lihat Review
+                                            </a>
+                                            <a href="{{ route('rekap-nilai.download', $nilai->id) }}" 
+                                               class="btn btn-sm btn-success" 
+                                               title="Download hasil pekerjaan siswa"
+                                               style="padding: 6px 12px; font-size: 13px; white-space: nowrap;">
+                                                <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">download</span>
+                                                Download
+                                            </a>
+                                        </div>
+                                    </td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="8" style="text-align: center; padding: 40px; color: #999;">
+                                    <td colspan="9" style="text-align: center; padding: 40px; color: #999;">
                                         Belum ada siswa yang mengerjakan ujian ini
                                     </td>
                                 </tr>

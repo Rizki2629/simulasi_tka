@@ -33,10 +33,12 @@ class FirestorePenilaianService
                 continue;
             }
 
-            // If this is a paket, score each sub-soal as a separate item.
-            // UI stores answers by sub-soal id (e.g. sub_123), so scoring the paket itself would always be empty.
-            if (($soal['jenis_soal'] ?? null) === 'paket') {
-                $subSoals = $this->bank->listSubSoalBySoalId($soalId, 2000);
+            // Paket detection:
+            // Some datasets may not explicitly mark the parent soal as jenis_soal='paket' in Firestore,
+            // but still have sub-soal entries. In that case we must treat it as paket; otherwise
+            // scoring would look for $jawabanPeserta[$soalId] and incorrectly yield 0.
+            $subSoals = $this->bank->listSubSoalBySoalId($soalId, 2000);
+            if (!empty($subSoals) || (($soal['jenis_soal'] ?? null) === 'paket')) {
                 foreach ($subSoals as $sub) {
                     $subId = (int) ($sub['id'] ?? 0);
                     if ($subId <= 0) {
