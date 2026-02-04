@@ -12,6 +12,14 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (DB::getDriverName() === 'pgsql') {
+            // In PostgreSQL, Laravel's `enum()` is implemented via a CHECK constraint.
+            // Dropping and swapping the whole table will fail because many tables have FKs to `soal`.
+            // Removing the CHECK constraint makes `jenis_soal` effectively a free-form string.
+            DB::statement('ALTER TABLE soal DROP CONSTRAINT IF EXISTS soal_jenis_soal_check');
+            return;
+        }
+
         // Disable foreign key constraints to allow table swapping
         Schema::disableForeignKeyConstraints();
 
