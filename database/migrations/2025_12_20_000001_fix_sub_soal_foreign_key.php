@@ -21,18 +21,18 @@ return new class extends Migration
         $driver = DB::getDriverName();
 
         if ($driver === 'pgsql') {
-            $row = DB::selectOne(
-                """
-                select
-                    c.conname as name,
-                    c.confrelid::regclass::text as ref_table
-                from pg_constraint c
-                join pg_class t on t.oid = c.conrelid
-                where t.relname = 'sub_soal'
-                  and c.conname = 'sub_soal_soal_id_foreign'
-                limit 1
-                """
-            );
+                        $sql = <<<'SQL'
+select
+        c.conname as name,
+        c.confrelid::regclass::text as ref_table
+from pg_constraint c
+join pg_class t on t.oid = c.conrelid
+where t.relname = 'sub_soal'
+    and c.conname = 'sub_soal_soal_id_foreign'
+limit 1
+SQL;
+
+                        $row = DB::selectOne($sql);
 
             if ($row && isset($row->ref_table) && $row->ref_table === 'soal') {
                 return;
