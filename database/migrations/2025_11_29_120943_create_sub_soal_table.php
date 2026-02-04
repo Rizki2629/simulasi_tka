@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('sub_soal', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('soal_id')->constrained('soals')->onDelete('cascade');
+            $table->foreignId('soal_id')->constrained('soal')->onDelete('cascade');
             $table->integer('nomor_urut'); // Nomor pertanyaan (1, 2, 3, dst)
             $table->enum('jenis_soal', ['pilihan_ganda', 'benar_salah', 'mcma', 'isian', 'uraian']);
             $table->text('pertanyaan');

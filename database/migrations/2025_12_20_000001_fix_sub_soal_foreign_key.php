@@ -12,46 +12,53 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Disable FK checks to allow table swapping
-        Schema::disableForeignKeyConstraints();
+        if (!Schema::hasTable('sub_soal') || !Schema::hasTable('soal')) {
+            return;
+        }
 
-        // 1. Create temp table with CORRECTED Foreign Key ('soal' instead of 'soals')
-        Schema::create('sub_soal_temp', function (Blueprint $table) {
-            $table->id();
-            // Fix: Referencing 'soal' table, not 'soals'
-            $table->foreignId('soal_id')->constrained('soal')->onDelete('cascade');
-            
-            $table->integer('nomor_urut');
-            // Keeping enum as per original, or string for flexibility. Let's use string to match 'soal' table changes.
-            $table->string('jenis_soal'); 
-            
-            $table->text('pertanyaan');
-            $table->string('gambar_pertanyaan')->nullable();
-            $table->text('jawaban_benar')->nullable();
-            $table->text('kunci_jawaban')->nullable();
-            $table->text('pembahasan')->nullable();
-            $table->timestamps();
+        // We only need to ensure the FK points to the correct table ('soal').
+        // The original issue was a FK referencing a non-existent 'soals' table.
+        $driver = DB::getDriverName();
+
+        if ($driver === 'pgsql') {
+            $row = DB::selectOne(
+                """
+                select
+                    c.conname as name,
+                    c.confrelid::regclass::text as ref_table
+                from pg_constraint c
+                join pg_class t on t.oid = c.conrelid
+                where t.relname = 'sub_soal'
+                  and c.conname = 'sub_soal_soal_id_foreign'
+                limit 1
+                """
+            );
+
+            if ($row && isset($row->ref_table) && $row->ref_table === 'soal') {
+                return;
+            }
+
+            DB::statement('ALTER TABLE sub_soal DROP CONSTRAINT IF EXISTS sub_soal_soal_id_foreign');
+            DB::statement(
+                'ALTER TABLE sub_soal ADD CONSTRAINT sub_soal_soal_id_foreign '
+                . 'FOREIGN KEY (soal_id) REFERENCES soal(id) ON DELETE CASCADE'
+            );
+
+            return;
+        }
+
+        // Fallback for other drivers: attempt a best-effort drop/recreate.
+        Schema::table('sub_soal', function (Blueprint $table) {
+            try {
+                $table->dropForeign(['soal_id']);
+            } catch (\Throwable $e) {
+                // Ignore if FK doesn't exist or driver doesn't support it cleanly.
+            }
         });
 
-        // 2. Copy data
-        // Explicitly insert columns to ensure safety. 
-        // Note: We cast enum to string implicitly during copy if we changed column type, which is fine.
-        $columns = ['id', 'soal_id', 'nomor_urut', 'jenis_soal', 'pertanyaan', 'gambar_pertanyaan', 'jawaban_benar', 'kunci_jawaban', 'pembahasan', 'created_at', 'updated_at'];
-        
-        // Helper to quote identifiers for safety
-        $quotedColumns = array_map(function($c) { return '"'.$c.'"'; }, $columns);
-        $columnList = implode(', ', $quotedColumns);
-        
-        DB::statement("INSERT INTO sub_soal_temp ($columnList) SELECT $columnList FROM sub_soal");
-
-        // 3. Drop old table
-        Schema::drop('sub_soal');
-
-        // 4. Rename temp table
-        Schema::rename('sub_soal_temp', 'sub_soal');
-
-        // Re-enable FK checks
-        Schema::enableForeignKeyConstraints();
+        Schema::table('sub_soal', function (Blueprint $table) {
+            $table->foreign('soal_id')->references('id')->on('soal')->onDelete('cascade');
+        });
     }
 
     /**
