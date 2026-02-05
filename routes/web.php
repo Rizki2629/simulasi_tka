@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\RekapNilaiController;
 use App\Http\Controllers\SoalController;
@@ -10,12 +11,7 @@ use App\Http\Controllers\SimulasiController;
 use App\Http\Controllers\FirebaseTestController;
 
 // Public routes - redirect to login if not authenticated
-Route::get('/', function () {
-    if (!auth()->check()) {
-        return redirect('/login');
-    }
-    return redirect('/dashboard');
-});
+Route::get('/', HomeController::class);
 
 // Login routes - accessible without authentication
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');

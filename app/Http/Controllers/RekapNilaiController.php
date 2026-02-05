@@ -9,6 +9,7 @@ use App\Models\Soal;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\DB;
 
 class RekapNilaiController extends Controller
 {
@@ -44,36 +45,85 @@ class RekapNilaiController extends Controller
         // Order by latest first
         $simulasiList = $query->orderBy('created_at', 'desc')->paginate(12);
 
-        // Add statistics for each simulasi
-        foreach ($simulasiList as $simulasi) {
-            $stats = Nilai::where('simulasi_id', $simulasi->id)
-                ->selectRaw('COUNT(*) as total_peserta, AVG(nilai_total) as rata_rata, MAX(nilai_total) as nilai_tertinggi, MIN(nilai_total) as nilai_terendah')
-                ->first();
+        $simulasiIds = $simulasiList->getCollection()->pluck('id')->filter()->values();
+        if ($simulasiIds->isNotEmpty()) {
+            $statsBySimulasiId = Nilai::query()
+                ->whereIn('simulasi_id', $simulasiIds)
+                ->selectRaw('simulasi_id, COUNT(*) as total_peserta, AVG(nilai_total) as rata_rata, MAX(nilai_total) as nilai_tertinggi, MIN(nilai_total) as nilai_terendah')
+                ->groupBy('simulasi_id')
+                ->get()
+                ->keyBy('simulasi_id');
 
-            $simulasi->total_peserta = (int) ($stats->total_peserta ?? 0);
-            $simulasi->rata_rata = (float) ($stats->rata_rata ?? 0);
-            $simulasi->nilai_tertinggi = (float) ($stats->nilai_tertinggi ?? 0);
-            $simulasi->nilai_terendah = (float) ($stats->nilai_terendah ?? 0);
+            $driver = (string) DB::connection()->getDriverName();
+            $topBySimulasiId = collect();
+            $bottomBySimulasiId = collect();
 
-            // Detail nilai tertinggi/terendah (nama siswa)
-            $top = null;
-            $bottom = null;
-            if ($simulasi->total_peserta > 0) {
-                $top = Nilai::with(['user:id,name,rombongan_belajar'])
-                    ->where('simulasi_id', $simulasi->id)
+            if ($driver === 'pgsql') {
+                $topPairs = DB::table('nilai')
+                    ->selectRaw('DISTINCT ON (simulasi_id) id, simulasi_id')
+                    ->whereIn('simulasi_id', $simulasiIds)
+                    ->orderBy('simulasi_id')
                     ->orderByDesc('nilai_total')
                     ->orderBy('id')
-                    ->first();
+                    ->get();
 
-                $bottom = Nilai::with(['user:id,name,rombongan_belajar'])
-                    ->where('simulasi_id', $simulasi->id)
+                $bottomPairs = DB::table('nilai')
+                    ->selectRaw('DISTINCT ON (simulasi_id) id, simulasi_id')
+                    ->whereIn('simulasi_id', $simulasiIds)
+                    ->orderBy('simulasi_id')
                     ->orderBy('nilai_total')
                     ->orderBy('id')
-                    ->first();
+                    ->get();
+
+                $allNilaiIds = collect($topPairs)->pluck('id')
+                    ->merge(collect($bottomPairs)->pluck('id'))
+                    ->filter()
+                    ->unique()
+                    ->values();
+
+                $nilaiById = collect();
+                if ($allNilaiIds->isNotEmpty()) {
+                    $nilaiById = Nilai::with(['user:id,name,rombongan_belajar'])
+                        ->whereIn('id', $allNilaiIds)
+                        ->get()
+                        ->keyBy('id');
+                }
+
+                foreach ($topPairs as $p) {
+                    $nilai = $nilaiById->get($p->id);
+                    if ($nilai) {
+                        $topBySimulasiId->put((int) $p->simulasi_id, $nilai);
+                    }
+                }
+
+                foreach ($bottomPairs as $p) {
+                    $nilai = $nilaiById->get($p->id);
+                    if ($nilai) {
+                        $bottomBySimulasiId->put((int) $p->simulasi_id, $nilai);
+                    }
+                }
             }
 
-            $simulasi->top_nilai = $top;
-            $simulasi->bottom_nilai = $bottom;
+            foreach ($simulasiList as $simulasi) {
+                $stats = $statsBySimulasiId->get($simulasi->id);
+
+                $simulasi->total_peserta = (int) ($stats->total_peserta ?? 0);
+                $simulasi->rata_rata = (float) ($stats->rata_rata ?? 0);
+                $simulasi->nilai_tertinggi = (float) ($stats->nilai_tertinggi ?? 0);
+                $simulasi->nilai_terendah = (float) ($stats->nilai_terendah ?? 0);
+
+                $simulasi->top_nilai = $topBySimulasiId->get($simulasi->id);
+                $simulasi->bottom_nilai = $bottomBySimulasiId->get($simulasi->id);
+            }
+        } else {
+            foreach ($simulasiList as $simulasi) {
+                $simulasi->total_peserta = 0;
+                $simulasi->rata_rata = 0;
+                $simulasi->nilai_tertinggi = 0;
+                $simulasi->nilai_terendah = 0;
+                $simulasi->top_nilai = null;
+                $simulasi->bottom_nilai = null;
+            }
         }
 
         return view('rekap-nilai.index', compact('simulasiList'));
