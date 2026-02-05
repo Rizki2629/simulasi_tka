@@ -16,9 +16,9 @@ final class FirebaseCredentials
      */
     public static function resolvePath(): string
     {
-        $credentials = (string) env('FIREBASE_CREDENTIALS');
-        $json = (string) env('FIREBASE_CREDENTIALS_JSON');
-        $b64 = (string) env('FIREBASE_CREDENTIALS_B64');
+        $credentials = self::envString('FIREBASE_CREDENTIALS');
+        $json = self::envString('FIREBASE_CREDENTIALS_JSON');
+        $b64 = self::envString('FIREBASE_CREDENTIALS_B64');
 
         // Prefer explicit JSON/B64 config vars
         if (trim($b64) !== '') {
@@ -43,6 +43,31 @@ final class FirebaseCredentials
         }
 
         return self::resolveFilePath($trimmed);
+    }
+
+    private static function envString(string $key): string
+    {
+        $v = env($key);
+        if (is_string($v) && $v !== '') {
+            return $v;
+        }
+
+        $v = getenv($key);
+        if (is_string($v) && $v !== '') {
+            return $v;
+        }
+
+        $v = $_SERVER[$key] ?? null;
+        if (is_string($v) && $v !== '') {
+            return $v;
+        }
+
+        $v = $_ENV[$key] ?? null;
+        if (is_string($v) && $v !== '') {
+            return $v;
+        }
+
+        return '';
     }
 
     private static function resolveFilePath(string $path): string
