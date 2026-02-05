@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Services\FirestoreRestClient;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -90,6 +91,7 @@ class FirestoreSyncToSql extends Command
         $uniqueKeys = $this->uniqueKeyForTable($table);
 
         $synced = 0;
+        $skipped = 0;
         foreach ($rows as $row) {
             if (!is_array($row)) {
                 continue;
@@ -121,7 +123,15 @@ class FirestoreSyncToSql extends Command
                 $where[$k] = $payload[$k];
             }
 
-            $db->table($table)->updateOrInsert($where, $payload);
+            try {
+                $db->table($table)->updateOrInsert($where, $payload);
+            } catch (QueryException $e) {
+                $skipped++;
+                if ($skipped <= 5) {
+                    $this->warn("{$table}: skip row due to DB constraint: " . $e->getCode());
+                }
+                continue;
+            }
 
             $synced++;
             if ($synced % 500 === 0) {
@@ -129,7 +139,11 @@ class FirestoreSyncToSql extends Command
             }
         }
 
-        $this->info("{$table}: synced {$synced} rows");
+        $msg = "{$table}: synced {$synced} rows";
+        if ($skipped > 0) {
+            $msg .= " (skipped {$skipped})";
+        }
+        $this->info($msg);
     }
 
     /**
