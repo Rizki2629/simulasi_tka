@@ -2135,90 +2135,68 @@ class SimulasiController extends Controller
     // Student Monitoring Methods
     public function examList()
     {
-        // Get all simulasi with participant and completion counts
+        // List simulasi aktif
         $simulasiList = Simulasi::with('mataPelajaran')
             ->where('is_active', true)
             ->orderBy('waktu_mulai', 'desc')
             ->get();
 
-        // Add participant and completed counts
-        foreach ($simulasiList as $simulasi) {
-            // Count participants from simulasi_peserta (registered students)
-            if ($this->firestoreStudentPrimary()) {
-                try {
-                    /** @var \App\Services\FirestoreSimulasiPesertaStore $sp */
-                    $sp = app(\App\Services\FirestoreSimulasiPesertaStore::class);
-                    $pesertaRows = $sp->listBySimulasiId((int) $simulasi->id, 2000);
-                    $simulasi->participant_count = collect($pesertaRows)
-                        ->pluck('user_id')
-                        ->filter(fn ($v) => is_numeric($v) && (int) $v > 0)
-                        ->unique()
-                        ->count();
-                } catch (\Throwable $e) {
-                    $simulasi->participant_count = DB::table('simulasi_peserta')
-                        ->where('simulasi_id', $simulasi->id)
-                        ->distinct('user_id')
-                        ->count('user_id');
-                }
-            } else {
-                $simulasi->participant_count = DB::table('simulasi_peserta')
-                    ->where('simulasi_id', $simulasi->id)
-                    ->distinct('user_id')
-                    ->count('user_id');
-            }
+        // NOTE: Sebelumnya halaman ini timeout di Heroku karena memanggil Firestore
+        // per-simulasi (N+1 HTTP requests). Karena data sudah dimigrasikan ke SQL,
+        // hitung participant/completed via agregasi SQL (jauh lebih cepat).
+        $simulasiIds = $simulasiList->pluck('id')->map(fn ($v) => (int) $v)->all();
 
-            // Count completed students: those with nilai OR status='selesai' in simulasi_peserta
-            $completedUserIds = collect();
-            
-            // Get user IDs from nilai (both Firestore and SQLite)
-            if ($this->firestoreStudentPrimary()) {
-                try {
-                    /** @var \App\Services\FirestoreNilaiStore $ns */
-                    $ns = app(\App\Services\FirestoreNilaiStore::class);
-                    $nilaiRows = $ns->listBySimulasiId((int) $simulasi->id, 2000);
-                    $firestoreUserIds = collect($nilaiRows)
-                        ->pluck('user_id')
-                        ->filter(fn ($v) => is_numeric($v) && (int) $v > 0)
-                        ->map(fn ($v) => (int) $v);
-                    $completedUserIds = $completedUserIds->merge($firestoreUserIds);
-                } catch (\Throwable $e) {
-                    // ignore
-                }
+        $participantCounts = collect();
+        $completedCounts = collect();
+
+        if (!empty($simulasiIds) && Schema::hasTable('simulasi_peserta')) {
+            $participantCounts = DB::table('simulasi_peserta')
+                ->select('simulasi_id', DB::raw('COUNT(DISTINCT user_id) AS participant_count'))
+                ->whereIn('simulasi_id', $simulasiIds)
+                ->groupBy('simulasi_id')
+                ->pluck('participant_count', 'simulasi_id');
+        }
+
+        if (!empty($simulasiIds)) {
+            $hasNilai = Schema::hasTable('nilai');
+            $hasPeserta = Schema::hasTable('simulasi_peserta');
+
+            if ($hasNilai && $hasPeserta) {
+                $union = DB::table('nilai')
+                    ->select('simulasi_id', 'user_id')
+                    ->whereIn('simulasi_id', $simulasiIds)
+                    ->union(
+                        DB::table('simulasi_peserta')
+                            ->select('simulasi_id', 'user_id')
+                            ->whereIn('simulasi_id', $simulasiIds)
+                            ->where('status', 'selesai')
+                    );
+
+                $completedCounts = DB::query()
+                    ->fromSub($union, 't')
+                    ->select('simulasi_id', DB::raw('COUNT(DISTINCT user_id) AS completed_count'))
+                    ->groupBy('simulasi_id')
+                    ->pluck('completed_count', 'simulasi_id');
+            } elseif ($hasNilai) {
+                $completedCounts = DB::table('nilai')
+                    ->select('simulasi_id', DB::raw('COUNT(DISTINCT user_id) AS completed_count'))
+                    ->whereIn('simulasi_id', $simulasiIds)
+                    ->groupBy('simulasi_id')
+                    ->pluck('completed_count', 'simulasi_id');
+            } elseif ($hasPeserta) {
+                $completedCounts = DB::table('simulasi_peserta')
+                    ->select('simulasi_id', DB::raw('COUNT(DISTINCT user_id) AS completed_count'))
+                    ->whereIn('simulasi_id', $simulasiIds)
+                    ->where('status', 'selesai')
+                    ->groupBy('simulasi_id')
+                    ->pluck('completed_count', 'simulasi_id');
             }
-            
-            // Also check SQLite nilai
-            $sqliteNilaiUserIds = Nilai::where('simulasi_id', $simulasi->id)
-                ->pluck('user_id')
-                ->filter(fn ($v) => (int) $v > 0)
-                ->map(fn ($v) => (int) $v);
-            $completedUserIds = $completedUserIds->merge($sqliteNilaiUserIds);
-            
-            // Also check simulasi_peserta with status='selesai' (both Firestore and SQLite)
-            if ($this->firestoreStudentPrimary()) {
-                try {
-                    /** @var \App\Services\FirestoreSimulasiPesertaStore $sp */
-                    $sp = app(\App\Services\FirestoreSimulasiPesertaStore::class);
-                    $pesertaRows = $sp->listBySimulasiId((int) $simulasi->id, 2000);
-                    $firestoreSelesaiUserIds = collect($pesertaRows)
-                        ->filter(fn ($row) => ($row['status'] ?? '') === 'selesai')
-                        ->pluck('user_id')
-                        ->filter(fn ($v) => is_numeric($v) && (int) $v > 0)
-                        ->map(fn ($v) => (int) $v);
-                    $completedUserIds = $completedUserIds->merge($firestoreSelesaiUserIds);
-                } catch (\Throwable $e) {
-                    // ignore
-                }
-            }
-            
-            $sqliteSelesaiUserIds = DB::table('simulasi_peserta')
-                ->where('simulasi_id', $simulasi->id)
-                ->where('status', 'selesai')
-                ->pluck('user_id')
-                ->filter(fn ($v) => (int) $v > 0)
-                ->map(fn ($v) => (int) $v);
-            $completedUserIds = $completedUserIds->merge($sqliteSelesaiUserIds);
-            
-            $simulasi->completed_count = $completedUserIds->unique()->count();
+        }
+
+        foreach ($simulasiList as $simulasi) {
+            $simulasiId = (int) $simulasi->id;
+            $simulasi->participant_count = (int) ($participantCounts[$simulasiId] ?? 0);
+            $simulasi->completed_count = (int) ($completedCounts[$simulasiId] ?? 0);
         }
 
         return view('simulasi.exam-list', compact('simulasiList'));
