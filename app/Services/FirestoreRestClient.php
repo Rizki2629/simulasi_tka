@@ -5,6 +5,7 @@ namespace App\Services;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
 use Illuminate\Support\Arr;
+use App\Support\FirebaseCredentials;
 
 class FirestoreRestClient
 {
@@ -273,8 +274,7 @@ class FirestoreRestClient
             return $cached['access_token'];
         }
 
-        $credentialsEnv = (string) env('FIREBASE_CREDENTIALS');
-        $credentialsPath = $this->resolvePath($credentialsEnv);
+        $credentialsPath = FirebaseCredentials::resolvePath();
         if (!is_file($credentialsPath)) {
             throw new \RuntimeException('FIREBASE_CREDENTIALS tidak ditemukan: ' . $credentialsPath);
         }
@@ -368,26 +368,6 @@ class FirestoreRestClient
     private function base64UrlEncode(string $data): string
     {
         return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
-    }
-
-    private function resolvePath(string $path): string
-    {
-        $path = trim($path);
-        if ($path === '') {
-            return '';
-        }
-
-        // Windows absolute path (C:\...) or UNC (\\server\share)
-        if (preg_match('/^[A-Za-z]:\\\\/', $path) === 1 || str_starts_with($path, '\\\\')) {
-            return $path;
-        }
-
-        // Unix absolute path
-        if (str_starts_with($path, '/')) {
-            return $path;
-        }
-
-        return base_path($path);
     }
 
     /**

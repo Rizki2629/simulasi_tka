@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Kreait\Firebase\Factory;
+use App\Support\FirebaseCredentials;
 
 class FirebaseService
 {
@@ -10,31 +11,13 @@ class FirebaseService
 
     public function __construct()
     {
-        $credentialsEnv = (string) env('FIREBASE_CREDENTIALS');
-        $credentialsPath = $this->resolvePath($credentialsEnv);
+        $credentialsPath = FirebaseCredentials::resolvePath();
 
         $factory = (new Factory)
             ->withServiceAccount($credentialsPath)
             ->withProjectId(env('FIREBASE_PROJECT_ID'));
 
         $this->app = $factory->create();
-    }
-
-    private function resolvePath(string $path): string
-    {
-        $path = trim($path);
-        if ($path === '') {
-            return '';
-        }
-
-        if (preg_match('/^[A-Za-z]:\\\\/', $path) === 1 || str_starts_with($path, '\\\\')) {
-            return $path;
-        }
-        if (str_starts_with($path, '/')) {
-            return $path;
-        }
-
-        return base_path($path);
     }
 
     /**
