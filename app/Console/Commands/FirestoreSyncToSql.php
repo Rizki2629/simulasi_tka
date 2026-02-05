@@ -34,7 +34,7 @@ class FirestoreSyncToSql extends Command
         $dryRun = (bool) $this->option('dry-run');
 
         $db = $connection ? DB::connection($connection) : DB::connection();
-        $schema = $connection ? Schema::connection($connection) : Schema::connection();
+        $schema = Schema::connection($db->getName());
         $driver = (string) $db->getDriverName();
 
         $fixSequences = $this->option('fix-sequences');
