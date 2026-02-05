@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f771f56b6f11c6ea482c5a05a4d0af51",
+    "content-hash": "3cec172ce03c2fae581cb4178ec21843",
     "packages": [
         {
             "name": "barryvdh/laravel-dompdf",
@@ -2223,12 +2223,12 @@
             "version": "7.24.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/kreait/firebase-php.git",
+                "url": "https://github.com/beste/firebase-php.git",
                 "reference": "7e2c321265dcb2eeea6fdb72e3819db684e0d4be"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/kreait/firebase-php/zipball/7e2c321265dcb2eeea6fdb72e3819db684e0d4be",
+                "url": "https://api.github.com/repos/beste/firebase-php/zipball/7e2c321265dcb2eeea6fdb72e3819db684e0d4be",
                 "reference": "7e2c321265dcb2eeea6fdb72e3819db684e0d4be",
                 "shasum": ""
             },
@@ -2324,12 +2324,12 @@
             "version": "5.3.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/kreait/firebase-tokens-php.git",
+                "url": "https://github.com/beste/firebase-tokens-php.git",
                 "reference": "5dc119c8c29fcab1fb3a35ed5164dee0d33e4430"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/kreait/firebase-tokens-php/zipball/5dc119c8c29fcab1fb3a35ed5164dee0d33e4430",
+                "url": "https://api.github.com/repos/beste/firebase-tokens-php/zipball/5dc119c8c29fcab1fb3a35ed5164dee0d33e4430",
                 "reference": "5dc119c8c29fcab1fb3a35ed5164dee0d33e4430",
                 "shasum": ""
             },
@@ -2398,12 +2398,12 @@
             "version": "6.2.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/kreait/laravel-firebase.git",
+                "url": "https://github.com/beste/laravel-firebase.git",
                 "reference": "1928f8dbf7882f24f9d33eaf5d4bee24b2663981"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/kreait/laravel-firebase/zipball/1928f8dbf7882f24f9d33eaf5d4bee24b2663981",
+                "url": "https://api.github.com/repos/beste/laravel-firebase/zipball/1928f8dbf7882f24f9d33eaf5d4bee24b2663981",
                 "reference": "1928f8dbf7882f24f9d33eaf5d4bee24b2663981",
                 "shasum": ""
             },
@@ -10564,6 +10564,8 @@
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
+        "ext-pdo_sqlite": "*",
+        "ext-sqlite3": "*",
         "php": "^8.2"
     },
     "platform-dev": [],

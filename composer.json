@@ -6,6 +6,8 @@
     "keywords": ["laravel", "framework"],
     "license": "MIT",
     "require": {
+        "ext-pdo_sqlite": "*",
+        "ext-sqlite3": "*",
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^3.1",
         "google/cloud-firestore": "^1.55",
