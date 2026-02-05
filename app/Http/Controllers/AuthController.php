@@ -33,7 +33,7 @@ class AuthController extends Controller
         }
 
         return back()->withErrors([
-            'email' => 'Username/NISN atau password salah.',
+            'email' => 'Username atau password salah.',
         ])->onlyInput('email');
     }
 

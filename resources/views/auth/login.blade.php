@@ -356,7 +356,7 @@
         </div>
 
         <div class="footer-text">
-            Belum punya akun? <a href="#">Daftar sekarang</a>
+            Siswa? <a href="{{ route('simulasi.login') }}">Login simulasi di sini</a>
         </div>
     </div>
 </body>

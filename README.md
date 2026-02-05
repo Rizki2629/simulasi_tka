@@ -9,6 +9,22 @@
 
 ## About Laravel
 
+## Simulasi TKA (Login)
+
+- Admin/Guru login: `/login` (menggunakan kolom `email` sebagai username).
+- Siswa login: `/simulasi/login` (NISN + password).
+
+### Membuat akun admin pertama
+
+Lokal:
+
+- `php artisan auth:ensure-admin --username=admin --password=admin`
+
+Heroku:
+
+- Set config vars `ADMIN_USERNAME` dan `ADMIN_PASSWORD`, lalu deploy ulang (release phase akan menjalankan migrasi + init admin).
+- Alternatif sekali jalan: `heroku run php artisan auth:ensure-admin --username=... --password=...`
+
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
 - [Simple, fast routing engine](https://laravel.com/docs/routing).
