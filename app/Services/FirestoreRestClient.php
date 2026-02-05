@@ -24,27 +24,55 @@ class FirestoreRestClient
     /**
      * @return array<int, array>
      */
-    public function listCollection(string $collection): array
+    public function listCollection(string $collection, ?int $limit = null): array
     {
-        $url = $this->documentsBaseUrl() . '/' . rawurlencode($collection);
-        $json = $this->requestJson('GET', $url);
-
-        $documents = $json['documents'] ?? [];
-        if (!is_array($documents)) {
-            return [];
-        }
+        $baseUrl = $this->documentsBaseUrl() . '/' . rawurlencode($collection);
+        $pageSize = 1000;
 
         $rows = [];
-        foreach ($documents as $doc) {
-            if (!is_array($doc)) {
-                continue;
+        $pageToken = null;
+
+        while (true) {
+            $remaining = $limit !== null ? max(0, $limit - count($rows)) : null;
+            if ($remaining !== null && $remaining === 0) {
+                break;
             }
 
-            $name = (string) ($doc['name'] ?? '');
-            $docId = $this->extractDocId($name);
-            $data = $this->decodeFields($doc['fields'] ?? []);
-            $data['id'] = (int) ($data['id'] ?? $docId);
-            $rows[] = $data;
+            $qs = [
+                'pageSize' => $remaining !== null ? min($pageSize, $remaining) : $pageSize,
+            ];
+            if (is_string($pageToken) && $pageToken !== '') {
+                $qs['pageToken'] = $pageToken;
+            }
+
+            $url = $baseUrl . '?' . http_build_query($qs);
+            $json = $this->requestJson('GET', $url);
+
+            $documents = $json['documents'] ?? [];
+            if (!is_array($documents) || $documents === []) {
+                break;
+            }
+
+            foreach ($documents as $doc) {
+                if (!is_array($doc)) {
+                    continue;
+                }
+
+                $name = (string) ($doc['name'] ?? '');
+                $docId = $this->extractDocId($name);
+                $data = $this->decodeFields($doc['fields'] ?? []);
+                $data['id'] = (int) ($data['id'] ?? $docId);
+                $rows[] = $data;
+
+                if ($limit !== null && count($rows) >= $limit) {
+                    break 2;
+                }
+            }
+
+            $pageToken = $json['nextPageToken'] ?? null;
+            if (!is_string($pageToken) || $pageToken === '') {
+                break;
+            }
         }
 
         return $rows;
