@@ -236,18 +236,19 @@ class SimulasiController extends Controller
                 ->with('error', 'Paket soal tidak valid. Silakan pilih paket soal yang benar.');
         }
 
-        // Rule: prevent generating the same paket if there is still an active simulasi using it.
-        $existingActive = Simulasi::query()
-            ->where('is_active', true)
-            ->whereHas('simulasiSoal', function ($q) use ($paket) {
-                $q->where('soal_id', (int) $paket->id);
-            })
-            ->exists();
+        // Allow generating the same paket multiple times.
+        // If you want to prevent overlaps, do it via schedule/time validation instead of blocking by paket.
 
-        if ($existingActive) {
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Soal sudah digenerate, jika ingin generate ulang harap hentikan simulasi yang telah dibuat sebelumnya');
+        // Postgres note: after importing SQL dumps, sequences can be out-of-sync and cause duplicate PK errors.
+        // Best-effort: re-sync sequences for the tables we are about to insert into.
+        if (DB::getDriverName() === 'pgsql') {
+            try {
+                DB::statement("SELECT setval(pg_get_serial_sequence('simulasi','id'), COALESCE((SELECT MAX(id) FROM simulasi),0)+1, false)");
+                DB::statement("SELECT setval(pg_get_serial_sequence('simulasi_soal','id'), COALESCE((SELECT MAX(id) FROM simulasi_soal),0)+1, false)");
+                DB::statement("SELECT setval(pg_get_serial_sequence('simulasi_peserta','id'), COALESCE((SELECT MAX(id) FROM simulasi_peserta),0)+1, false)");
+            } catch (\Throwable $e) {
+                // best-effort
+            }
         }
 
         DB::beginTransaction();
