@@ -1,4 +1,4 @@
-web: heroku-php-apache2 public/
+web: sh -c 'rm -rf public/storage; php artisan storage:link || true; heroku-php-apache2 public/'
 
 # Run database migrations on deploy. Optionally create/ensure an admin account
 # if ADMIN_USERNAME and ADMIN_PASSWORD config vars are provided.
