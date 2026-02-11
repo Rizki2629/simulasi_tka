@@ -1,2 +1,12 @@
 *
 !.gitignore
+
+# Allow deploying bundled assets (Heroku slug)
+!dummy/
+!dummy/**
+!jawaban/
+!jawaban/**
+!soal/
+!soal/**
+!soal_images/
+!soal_images/**
