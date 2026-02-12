@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class SimulasiController extends Controller
 {
@@ -166,32 +167,35 @@ class SimulasiController extends Controller
 
     public function generateSimulasi()
     {
-        // Get all students from database
-        $students = User::where('role', 'siswa')
+        // Get all students from database (cached 60s)
+        $students = Cache::remember('generate_students', 60, function () {
+            return User::where('role', 'siswa')
                        ->orderBy('rombongan_belajar')
                        ->orderBy('name')
                        ->get();
+        });
 
-        // Get all paket soal (parent records) so admin can pick a specific packet.
-        // Each paket contains its questions in sub_soal.
-        $paketSoal = Soal::query()
-            ->where('jenis_soal', 'paket')
-            ->with(['mataPelajaran'])
-            ->withCount('subSoal')
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($soal) {
-                $mapel = $soal->mataPelajaran;
-                $namaMapel = $mapel?->nama ?? '-';
-                $jumlah = (int) ($soal->sub_soal_count ?? 0);
-                return [
-                    'id' => $soal->id,
-                    'kode' => $soal->kode_soal,
-                    'nama' => $namaMapel,
-                    'jumlah_soal' => $jumlah,
-                    'label' => "{$soal->kode_soal} - {$namaMapel} ({$jumlah} Soal)",
-                ];
-            });
+        // Get all paket soal (cached 60s)
+        $paketSoal = Cache::remember('generate_paket_soal', 60, function () {
+            return Soal::query()
+                ->where('jenis_soal', 'paket')
+                ->with(['mataPelajaran'])
+                ->withCount('subSoal')
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($soal) {
+                    $mapel = $soal->mataPelajaran;
+                    $namaMapel = $mapel?->nama ?? '-';
+                    $jumlah = (int) ($soal->sub_soal_count ?? 0);
+                    return [
+                        'id' => $soal->id,
+                        'kode' => $soal->kode_soal,
+                        'nama' => $namaMapel,
+                        'jumlah_soal' => $jumlah,
+                        'label' => "{$soal->kode_soal} - {$namaMapel} ({$jumlah} Soal)",
+                    ];
+                });
+        });
 
         return view('simulasi.generate', compact('students', 'paketSoal'));
     }
@@ -200,18 +204,20 @@ class SimulasiController extends Controller
     {
         $now = now();
 
-        $simulasis = Simulasi::query()
-            ->where('is_active', true)
-            ->with([
-                'mataPelajaran',
-                'creator',
-                'simulasiSoal.soal' => function ($q) {
-                    $q->withCount('subSoal');
-                },
-            ])
-            ->withCount('simulasiPeserta')
-            ->orderByDesc('waktu_mulai')
-            ->get();
+        $simulasis = Cache::remember('simulasi_active_list', 30, function () {
+            return Simulasi::query()
+                ->where('is_active', true)
+                ->with([
+                    'mataPelajaran',
+                    'creator',
+                    'simulasiSoal.soal' => function ($q) {
+                        $q->withCount('subSoal');
+                    },
+                ])
+                ->withCount('simulasiPeserta')
+                ->orderByDesc('waktu_mulai')
+                ->get();
+        });
 
         return view('simulasi.generated-active', compact('simulasis', 'now'));
     }
@@ -343,6 +349,11 @@ class SimulasiController extends Controller
 
             DB::commit();
 
+            // Invalidate caches
+            Cache::forget('simulasi_active_list');
+            Cache::forget('generate_students');
+            Cache::forget('generate_paket_soal');
+
             return redirect()->route('soal.index')->with('success', 'Simulasi berhasil di-generate! Soal telah ditandai sebagai aktif.');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -359,7 +370,31 @@ class SimulasiController extends Controller
         $simulasi->is_active = false;
         $simulasi->save();
 
+        Cache::forget('simulasi_active_list');
+
         return redirect()->back()->with('success', 'Simulasi berhasil dihentikan.');
+    }
+
+    public function deleteSimulasi(Simulasi $simulasi)
+    {
+        DB::beginTransaction();
+        try {
+            // Delete related records (cascade may handle some, but be explicit)
+            DB::table('simulasi_soal')->where('simulasi_id', $simulasi->id)->delete();
+            DB::table('simulasi_peserta')->where('simulasi_id', $simulasi->id)->delete();
+            Nilai::where('simulasi_id', $simulasi->id)->delete();
+
+            $simulasi->delete();
+
+            DB::commit();
+
+            Cache::forget('simulasi_active_list');
+
+            return redirect()->back()->with('success', 'Simulasi berhasil dihapus permanen.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal menghapus simulasi: ' . $e->getMessage());
+        }
     }
 
     public function generateToken()

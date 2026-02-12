@@ -240,8 +240,16 @@
                                     <span class="material-symbols-outlined" style="font-size: 18px;">grading</span>
                                     Rekap Nilai
                                 </a>
-                                <form action="{{ route('simulasi.stop', $sim->id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Hentikan simulasi ini? Setelah dihentikan, Anda bisa generate ulang paket yang sama.');">
+                                <form action="{{ route('simulasi.stop', $sim->id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Hentikan simulasi ini? Simulasi akan dinonaktifkan tetapi data tetap tersimpan.');">
                                     @csrf
+                                    <button type="submit" class="btn btn-secondary" style="color: #b45309; border-color: #fde68a; background: #fffbeb;">
+                                        <span class="material-symbols-outlined" style="font-size: 18px;">stop_circle</span>
+                                        Hentikan
+                                    </button>
+                                </form>
+                                <form action="{{ route('simulasi.delete', $sim->id) }}" method="POST" style="display: inline;" onsubmit="return confirm('HAPUS PERMANEN simulasi ini?\n\nSemua data peserta dan nilai akan ikut terhapus.\nTindakan ini tidak dapat dibatalkan!');">
+                                    @csrf
+                                    @method('DELETE')
                                     <button type="submit" class="btn btn-secondary" style="color: #b91c1c; border-color: #fecaca; background: #fff5f5;">
                                         <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
                                         Hapus

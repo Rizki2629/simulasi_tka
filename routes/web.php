@@ -53,6 +53,7 @@ Route::middleware(['auth', 'role:admin,guru'])->group(function () {
     Route::post('/simulasi/generate', [SimulasiController::class, 'storeSimulasi'])->name('simulasi.store');
     Route::get('/simulasi/generated-active', [SimulasiController::class, 'generatedActive'])->name('simulasi.generated.active');
     Route::post('/simulasi/{simulasi}/stop', [SimulasiController::class, 'stopSimulasi'])->name('simulasi.stop');
+    Route::delete('/simulasi/{simulasi}', [SimulasiController::class, 'deleteSimulasi'])->name('simulasi.delete');
     Route::get('/simulasi/token', [SimulasiController::class, 'generateToken'])->name('simulasi.token');
     Route::post('/simulasi/token/refresh', [SimulasiController::class, 'refreshToken'])->name('simulasi.token.refresh');
 
