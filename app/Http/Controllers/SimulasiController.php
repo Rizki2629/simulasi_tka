@@ -300,31 +300,43 @@ class SimulasiController extends Controller
                 if (!empty($rows)) {
                     DB::table('simulasi_peserta')->insertOrIgnore($rows);
 
-                    // Also sync registered participants to Firestore so monitoring can be fully Firestore-based.
+                    // Sync registered participants to Firestore in background (deferred)
+                    // to avoid Heroku H12 timeout when many students are selected.
                     if ($this->firestoreStudentPrimary()) {
-                        try {
-                            /** @var \App\Services\FirestoreSimulasiPesertaStore $sp */
-                            $sp = app(\App\Services\FirestoreSimulasiPesertaStore::class);
+                        $simId = $simulasi->id;
+                        $sIds = $studentIds->all();
+                        $createdAt = $now;
+                        defer(function () use ($simId, $sIds, $createdAt) {
+                            try {
+                                /** @var FirestoreRestClient $client */
+                                $client = app(FirestoreRestClient::class);
 
-                            // Fetch SQLite ids (best-effort) then upsert to Firestore.
-                            $sqliteRows = DB::table('simulasi_peserta')
-                                ->where('simulasi_id', $simulasi->id)
-                                ->whereIn('user_id', $studentIds)
-                                ->get(['id', 'user_id', 'status', 'waktu_mulai', 'waktu_selesai', 'nilai']);
+                                $sqliteRows = DB::table('simulasi_peserta')
+                                    ->where('simulasi_id', $simId)
+                                    ->whereIn('user_id', $sIds)
+                                    ->get(['id', 'user_id', 'status', 'waktu_mulai', 'waktu_selesai', 'nilai']);
 
-                            foreach ($sqliteRows as $r) {
-                                $sp->upsert((int) $r->user_id, (int) $simulasi->id, [
-                                    'id' => (int) $r->id,
-                                    'status' => (string) ($r->status ?? 'belum_mulai'),
-                                    'waktu_mulai' => $r->waktu_mulai ? \Carbon\Carbon::parse($r->waktu_mulai) : null,
-                                    'waktu_selesai' => $r->waktu_selesai ? \Carbon\Carbon::parse($r->waktu_selesai) : null,
-                                    'nilai' => $r->nilai !== null ? (float) $r->nilai : null,
-                                    'created_at' => $now,
-                                ]);
+                                foreach ($sqliteRows as $r) {
+                                    $key = $r->user_id . '_' . $simId;
+                                    $payload = [
+                                        'key' => $key,
+                                        'id' => (int) $r->id,
+                                        'user_id' => (int) $r->user_id,
+                                        'simulasi_id' => (int) $simId,
+                                        'status' => (string) ($r->status ?? 'belum_mulai'),
+                                        'waktu_mulai' => $r->waktu_mulai ? \Carbon\Carbon::parse($r->waktu_mulai) : null,
+                                        'waktu_selesai' => $r->waktu_selesai ? \Carbon\Carbon::parse($r->waktu_selesai) : null,
+                                        'nilai' => $r->nilai !== null ? (float) $r->nilai : null,
+                                        'created_at' => $createdAt,
+                                        'updated_at' => \Carbon\Carbon::now(),
+                                    ];
+                                    // Use addDocument directly (new data, no need to query first)
+                                    $client->addDocument('simulasi_peserta', $payload);
+                                }
+                            } catch (\Throwable $e) {
+                                // ignore Firestore sync failures
                             }
-                        } catch (\Throwable $e) {
-                            // ignore
-                        }
+                        });
                     }
                 }
             }
