@@ -96,7 +96,7 @@
         .actions {
             display: flex;
             gap: 10px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             margin-top: 10px;
         }
 

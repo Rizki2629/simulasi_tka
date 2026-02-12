@@ -218,6 +218,48 @@
             color: #999;
         }
 
+        /* Rombel Checkbox Group */
+        .rombel-checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .rombel-checkbox-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #333;
+            background: #fff;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .rombel-checkbox-item:hover {
+            border-color: #702637;
+            background: #fdf2f4;
+        }
+
+        .rombel-checkbox-item:has(input:checked) {
+            border-color: #702637;
+            background: #fdf2f4;
+            color: #702637;
+            font-weight: 600;
+        }
+
+        .rombel-checkbox-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #702637;
+        }
+
         /* Select All */
         .select-all-container {
             background: #f9f9f9;
@@ -471,15 +513,21 @@
                             
                             <div class="form-group" style="margin-bottom: 16px;">
                                 <label class="form-label">Filter berdasarkan Rombongan Belajar</label>
-                                <select class="form-select" id="rombelFilter" onchange="filterByRombel()">
-                                    <option value="">Semua Kelas</option>
-                                    @php
-                                        $rombels = $students->pluck('rombongan_belajar')->unique()->sort()->values();
-                                    @endphp
+                                @php
+                                    $rombels = $students->pluck('rombongan_belajar')->unique()->sort()->values();
+                                @endphp
+                                <div class="rombel-checkbox-group">
+                                    <label class="rombel-checkbox-item">
+                                        <input type="checkbox" id="rombelAll" checked onchange="toggleRombelAll()">
+                                        <span>Semua Kelas</span>
+                                    </label>
                                     @foreach($rombels as $rombel)
-                                        <option value="{{ $rombel }}">Kelas {{ $rombel }}</option>
+                                    <label class="rombel-checkbox-item">
+                                        <input type="checkbox" class="rombel-checkbox" value="{{ $rombel }}" checked onchange="filterByRombel()">
+                                        <span>Kelas {{ $rombel }}</span>
+                                    </label>
                                     @endforeach
-                                </select>
+                                </div>
                             </div>
                             
                             <div class="select-all-container">
@@ -547,30 +595,53 @@
 @push('scripts')
     <script>
 
+        function toggleRombelAll() {
+            const allChecked = document.getElementById('rombelAll').checked;
+            document.querySelectorAll('.rombel-checkbox').forEach(cb => {
+                cb.checked = allChecked;
+            });
+            filterByRombel();
+        }
+
         function filterByRombel() {
-            const filterValue = document.getElementById('rombelFilter').value;
+            const checkedRombels = Array.from(document.querySelectorAll('.rombel-checkbox:checked')).map(cb => cb.value);
+            const allRombels = document.querySelectorAll('.rombel-checkbox');
+            const rombelAll = document.getElementById('rombelAll');
             const checkboxItems = document.querySelectorAll('.checkbox-item');
             const selectAllText = document.getElementById('selectAllText');
             let visibleCount = 0;
+
+            // Update "Semua Kelas" checkbox state
+            if (checkedRombels.length === allRombels.length) {
+                rombelAll.checked = true;
+                rombelAll.indeterminate = false;
+            } else if (checkedRombels.length === 0) {
+                rombelAll.checked = false;
+                rombelAll.indeterminate = false;
+            } else {
+                rombelAll.checked = false;
+                rombelAll.indeterminate = true;
+            }
+
+            const showAll = checkedRombels.length === allRombels.length || checkedRombels.length === 0;
             
             checkboxItems.forEach(item => {
                 const rombel = item.getAttribute('data-rombel');
-                if (filterValue === '' || rombel === filterValue) {
+                if (showAll || checkedRombels.includes(rombel)) {
                     item.style.display = '';
                     visibleCount++;
                 } else {
                     item.style.display = 'none';
-                    // Uncheck hidden items
                     const checkbox = item.querySelector('.student-checkbox');
                     if (checkbox) checkbox.checked = false;
                 }
             });
             
             // Update select all text
-            if (filterValue === '') {
+            if (showAll) {
                 selectAllText.textContent = 'Pilih Semua Siswa';
             } else {
-                selectAllText.textContent = `Pilih Semua Siswa Kelas ${filterValue} (${visibleCount} siswa)`;
+                selectAllText.textContent = `Pilih Semua Siswa (${checkedRombels.join(', ')}) - ${visibleCount} siswa`;
             }
             
             // Reset select all checkbox
