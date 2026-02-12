@@ -80,7 +80,7 @@ Route::post('/simulasi/student-logout', [SimulasiController::class, 'studentLogo
 Route::post('/simulasi/start-exam', [SimulasiController::class, 'startExam'])->name('simulasi.start.exam');
 Route::get('/simulasi/exam', [SimulasiController::class, 'examInterface'])->name('simulasi.exam');
 Route::post('/simulasi/submit-answer', [SimulasiController::class, 'submitAnswer'])->name('simulasi.submit.answer');
-Route::post('/simulasi/save-answer', [SimulasiController::class, 'saveAnswer'])->name('simulasi.save.answer');
+Route::post('/simulasi/save-answer', [SimulasiController::class, 'submitAnswer'])->name('simulasi.save.answer');
 Route::post('/simulasi/finish-exam', [SimulasiController::class, 'finishExam'])->name('simulasi.finish.exam');
 Route::get('/simulasi/review', [SimulasiController::class, 'review'])->name('simulasi.review');
 Route::post('/simulasi/finish-review', [SimulasiController::class, 'finishReview'])->name('simulasi.finish-review');
