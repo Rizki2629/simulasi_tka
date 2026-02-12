@@ -1,0 +1,73 @@
+config:
+  target: "https://sdnug09.app"
+  phases:
+    # Phase 1: Simulate 10 students logging in together
+    - duration: 10
+      arrivalRate: 10
+      name: "10 students simultaneous"
+    # Phase 2: 25 students
+    - duration: 10
+      arrivalRate: 25
+      name: "25 students simultaneous"
+    # Phase 3: 50 students (classroom scale)
+    - duration: 15
+      arrivalRate: 50
+      name: "50 students simultaneous"
+    # Phase 4: 75 students
+    - duration: 10
+      arrivalRate: 75
+      name: "75 students simultaneous"
+    # Phase 5: 100 students
+    - duration: 10
+      arrivalRate: 100
+      name: "100 students simultaneous"
+
+  defaults:
+    headers:
+      User-Agent: "Artillery-LoginTest/1.0"
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+
+scenarios:
+  # Scenario 1: Full student login flow (GET login page + POST login)
+  - name: "Student Login Flow (GET + POST)"
+    weight: 70
+    flow:
+      - get:
+          url: "/simulasi/login"
+          followRedirect: true
+          capture:
+            - regexp: 'name="_token"\s+value="([^"]+)"'
+              as: "csrfToken"
+            - header: "set-cookie"
+              as: "sessionCookie"
+      - think: 1
+      - post:
+          url: "/simulasi/student-login"
+          followRedirect: true
+          headers:
+            Content-Type: "application/x-www-form-urlencoded"
+          body: "_token={{ csrfToken }}&nisn=0000000001&password=wrongpass123"
+
+  # Scenario 2: Just GET login page (students opening the page)
+  - name: "Open Login Page Only"
+    weight: 20
+    flow:
+      - get:
+          url: "/simulasi/login"
+          followRedirect: true
+
+  # Scenario 3: Rapid page refresh (student hitting F5)
+  - name: "Rapid Login Page Refresh"
+    weight: 10
+    flow:
+      - get:
+          url: "/simulasi/login"
+          followRedirect: true
+      - think: 0.5
+      - get:
+          url: "/simulasi/login"
+          followRedirect: true
+      - think: 0.5
+      - get:
+          url: "/simulasi/login"
+          followRedirect: true

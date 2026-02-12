@@ -1,0 +1,117 @@
+config:
+  target: "https://sdnug09.app"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      name: "Functional test - all pages"
+
+  defaults:
+    headers:
+      User-Agent: "Artillery-FunctionalTest/1.0"
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+
+  ensure:
+    thresholds:
+      - http.response_time.p95: 5000
+    conditions:
+      - expression: "vusers.failed == 0"
+        strict: false
+
+scenarios:
+  # Test 1: Homepage
+  - name: "Homepage"
+    weight: 10
+    flow:
+      - get:
+          url: "/"
+          followRedirect: true
+          expect:
+            - statusCode: 200
+
+  # Test 2: Admin login page
+  - name: "Admin Login Page"
+    weight: 10
+    flow:
+      - get:
+          url: "/login"
+          followRedirect: true
+          expect:
+            - statusCode: 200
+
+  # Test 3: Student login page
+  - name: "Student Login Page"
+    weight: 15
+    flow:
+      - get:
+          url: "/simulasi/login"
+          followRedirect: true
+          expect:
+            - statusCode: 200
+            - hasHeader: "set-cookie"
+
+  # Test 4: Student login flow (CSRF + POST)
+  - name: "Student Login Flow"
+    weight: 15
+    flow:
+      - get:
+          url: "/simulasi/login"
+          followRedirect: true
+          capture:
+            - regexp: 'name="_token"\s+value="([^"]+)"'
+              as: "csrfToken"
+      - think: 1
+      - post:
+          url: "/simulasi/student-login"
+          followRedirect: true
+          headers:
+            Content-Type: "application/x-www-form-urlencoded"
+          body: "_token={{ csrfToken }}&nisn=0000000001&password=test"
+
+  # Test 5: Protected pages (should redirect to login)
+  - name: "Protected Pages Redirect"
+    weight: 10
+    flow:
+      - get:
+          url: "/dashboard"
+          followRedirect: true
+          expect:
+            - statusCode: 200
+
+  # Test 6: Simulasi pages (protected)
+  - name: "Simulasi Generate Page"
+    weight: 10
+    flow:
+      - get:
+          url: "/simulasi/generate"
+          followRedirect: true
+          expect:
+            - statusCode: 200
+
+  # Test 7: Generated Active page
+  - name: "Generated Active Page"
+    weight: 10
+    flow:
+      - get:
+          url: "/simulasi/generated-active"
+          followRedirect: true
+          expect:
+            - statusCode: 200
+
+  # Test 8: Student dashboard (without session)
+  - name: "Student Dashboard (no session)"
+    weight: 10
+    flow:
+      - get:
+          url: "/simulasi/student-dashboard"
+          followRedirect: true
+          expect:
+            - statusCode: 200
+
+  # Test 9: Static assets
+  - name: "Static Assets"
+    weight: 10
+    flow:
+      - get:
+          url: "/robots.txt"
+          expect:
+            - statusCode: 200

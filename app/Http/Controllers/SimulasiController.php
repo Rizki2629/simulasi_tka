@@ -502,10 +502,17 @@ class SimulasiController extends Controller
             return back()->with('error', 'NISN atau password salah')->withInput();
         }
 
-        // Prevent session data bleed between different student accounts
-        // (e.g., exam_answers/exam_data from a previous student filling a new student's exam page).
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        // Regenerate session ID to prevent session fixation, but do NOT invalidate
+        // the entire session — invalidate() under heavy concurrent load causes CSRF
+        // token mismatches ("Page Expired" / 419) because the DB session row is
+        // deleted before the new token can be written.
+        $request->session()->regenerate();
+
+        // Clear any leftover exam data from a previous student session
+        $request->session()->forget([
+            'exam_data', 'exam_answers', 'exam_soal_ids',
+            'hasil_ujian', 'review_data',
+        ]);
 
         // Store student ID in session
         Session::put('student_id', $student->id);

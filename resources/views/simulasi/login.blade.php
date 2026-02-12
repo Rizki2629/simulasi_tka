@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Login Siswa - Simulasi TKA</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
@@ -247,6 +248,80 @@
         // Auto-format NISN input (numbers only)
         document.getElementById('nisn').addEventListener('input', function(e) {
             this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+        // Handle form submission with auto-retry on 419 (Page Expired)
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+            const btn = form.querySelector('button[type="submit"]');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Memproses...';
+
+            const formData = new FormData(form);
+
+            function submitForm(retryCount) {
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'text/html, application/json',
+                    },
+                    redirect: 'follow',
+                    credentials: 'same-origin'
+                }).then(function(response) {
+                    if (response.status === 419 && retryCount < 3) {
+                        // CSRF expired — fetch fresh token and retry
+                        return fetch('/simulasi/login', { credentials: 'same-origin' })
+                            .then(function(r) { return r.text(); })
+                            .then(function(html) {
+                                var match = html.match(/name="_token"\s+value="([^"]+)"/);
+                                if (match) {
+                                    formData.set('_token', match[1]);
+                                    var metaToken = document.querySelector('meta[name="csrf-token"]');
+                                    if (metaToken) metaToken.content = match[1];
+                                    var hiddenToken = form.querySelector('input[name="_token"]');
+                                    if (hiddenToken) hiddenToken.value = match[1];
+                                }
+                                return submitForm(retryCount + 1);
+                            });
+                    }
+                    if (response.redirected) {
+                        window.location.href = response.url;
+                        return;
+                    }
+                    if (response.ok) {
+                        // Some redirects don't report as redirected
+                        return response.text().then(function(html) {
+                            if (response.url !== window.location.href) {
+                                window.location.href = response.url;
+                            } else {
+                                document.open();
+                                document.write(html);
+                                document.close();
+                            }
+                        });
+                    }
+                    // Other error — reload the page
+                    return response.text().then(function(html) {
+                        document.open();
+                        document.write(html);
+                        document.close();
+                    });
+                }).catch(function(err) {
+                    if (retryCount < 2) {
+                        setTimeout(function() { submitForm(retryCount + 1); }, 1000);
+                    } else {
+                        btn.disabled = false;
+                        btn.textContent = originalText;
+                        alert('Gagal menghubungi server. Silakan coba lagi.');
+                    }
+                });
+            }
+
+            submitForm(0);
         });
     </script>
 </body>

@@ -71,7 +71,7 @@ Route::middleware(['auth', 'role:admin,guru'])->group(function () {
 
 // Student Login Routes - Public (No authentication required)
 Route::get('/simulasi/login', [SimulasiController::class, 'showStudentLogin'])->name('simulasi.login');
-Route::post('/simulasi/student-login', [SimulasiController::class, 'studentLogin'])->name('simulasi.student.login')->middleware('throttle:10,1');
+Route::post('/simulasi/student-login', [SimulasiController::class, 'studentLogin'])->name('simulasi.student.login')->middleware('throttle:120,1');
 Route::get('/simulasi/student-dashboard', [SimulasiController::class, 'studentDashboard'])->name('simulasi.student.dashboard');
 Route::post('/simulasi/confirm-data', [SimulasiController::class, 'confirmData'])->name('simulasi.confirm.data');
 Route::post('/simulasi/update-token', [SimulasiController::class, 'updateToken'])->name('simulasi.update.token');
