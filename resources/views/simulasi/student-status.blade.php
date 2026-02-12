@@ -348,6 +348,7 @@
                                     <th>Status</th>
                                     <th>Waktu Mulai</th>
                                     <th>Waktu Selesai</th>
+                                    <th>Sisa Waktu</th>
                                     <th style="text-align: center;">Aksi</th>
                                 </tr>
                             </thead>
@@ -375,8 +376,54 @@
                                             {{ $data->statusText }}
                                         </span>
                                     </td>
-                                    <td>{{ data_get($data->session, 'started_at')?->format('d M Y, H:i') ?? '-' }}</td>
+                                    <td>
+                                        @php
+                                            $waktuMulai = data_get($data->session, 'started_at');
+                                            if (!$waktuMulai && $data->peserta) {
+                                                $wm = data_get($data->peserta, 'waktu_mulai');
+                                                if ($wm instanceof \Carbon\Carbon) {
+                                                    $waktuMulai = $wm;
+                                                } elseif ($wm) {
+                                                    try { $waktuMulai = \Carbon\Carbon::parse($wm); } catch (\Throwable $e) {}
+                                                }
+                                            }
+                                        @endphp
+                                        {{ $waktuMulai ? $waktuMulai->format('d M Y, H:i') : '-' }}
+                                    </td>
                                     <td>{{ $data->nilai ? $data->nilai->created_at->format('d M Y, H:i') : '-' }}</td>
+                                    <td>
+                                        @php
+                                            $sisaWaktu = '-';
+                                            $sisaClass = '';
+                                            if ($waktuMulai && !$data->nilai) {
+                                                $batasSelesai = $waktuMulai->copy()->addMinutes((int) $simulasi->durasi_menit);
+                                                $now = now();
+                                                if ($now->lt($batasSelesai)) {
+                                                    $diff = $now->diff($batasSelesai);
+                                                    $sisaJam = $diff->h;
+                                                    $sisaMenit = $diff->i;
+                                                    $sisaDetik = $diff->s;
+                                                    if ($sisaJam > 0) {
+                                                        $sisaWaktu = "{$sisaJam}j {$sisaMenit}m";
+                                                    } else {
+                                                        $sisaWaktu = "{$sisaMenit}m {$sisaDetik}d";
+                                                    }
+                                                    $sisaClass = $sisaMenit <= 10 && $sisaJam == 0 ? 'badge-warning' : 'badge-success';
+                                                } else {
+                                                    $sisaWaktu = 'Habis';
+                                                    $sisaClass = 'badge-danger';
+                                                }
+                                            } elseif ($data->nilai) {
+                                                $sisaWaktu = 'Selesai';
+                                                $sisaClass = 'badge-success';
+                                            }
+                                        @endphp
+                                        @if($sisaWaktu !== '-')
+                                            <span class="student-status-badge {{ $sisaClass }}">{{ $sisaWaktu }}</span>
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
                                     <td>
                                         <div class="action-btns" style="justify-content: center;">
                                             @if($data->session || $data->nilai)
@@ -397,7 +444,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="8" style="text-align: center; padding: 40px; color: #999;">
+                                    <td colspan="9" style="text-align: center; padding: 40px; color: #999;">
                                         Tidak ada siswa{{ request('class_filter') ? ' di kelas ' . request('class_filter') : '' }}
                                     </td>
                                 </tr>

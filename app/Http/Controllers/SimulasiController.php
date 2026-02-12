@@ -2254,14 +2254,33 @@ class SimulasiController extends Controller
     {
         $simulasi = Simulasi::with('mataPelajaran')->findOrFail($simulasiId);
 
+        // Cache the entire student status data for 15 seconds to avoid
+        // multiple slow Firestore round-trips on every page load.
+        $cacheKey = "student_status_{$simulasiId}_" . (request('class_filter') ?? 'all');
+        $cachedData = Cache::remember($cacheKey, 15, function () use ($simulasiId, $simulasi) {
+            return $this->buildStudentStatusData($simulasiId, $simulasi);
+        });
+
+        return view('simulasi.student-status', array_merge($cachedData, ['simulasi' => $simulasi]));
+    }
+
+    /**
+     * Build all the data needed for the student-status page.
+     * Extracted to enable caching.
+     */
+    private function buildStudentStatusData(int $simulasiId, Simulasi $simulasi): array
+    {
+
         // Only show students that are registered for this simulasi.
+        // Also reuse this data for peserta records below to avoid duplicate Firestore calls.
         $participantIds = collect();
+        $firestorePesertaRows = null; // Will store raw Firestore rows for reuse
         if ($this->firestoreStudentPrimary()) {
             try {
                 /** @var \App\Services\FirestoreSimulasiPesertaStore $sp */
                 $sp = app(\App\Services\FirestoreSimulasiPesertaStore::class);
-                $rows = $sp->listBySimulasiId((int) $simulasiId, 2000);
-                $participantIds = collect($rows)
+                $firestorePesertaRows = $sp->listBySimulasiId((int) $simulasiId, 2000);
+                $participantIds = collect($firestorePesertaRows)
                     ->pluck('user_id')
                     ->filter(fn ($v) => is_numeric($v) && (int) $v > 0)
                     ->map(fn ($v) => (int) $v)
@@ -2331,14 +2350,11 @@ class SimulasiController extends Controller
                 ->keyBy('user_id');
         }
 
-        // Get peserta status (from Firestore if available, else SQLite)
+        // Get peserta status - reuse Firestore data from the participant lookup above
         $pesertaRecords = collect();
-        if ($this->firestoreStudentPrimary()) {
+        if ($this->firestoreStudentPrimary() && $firestorePesertaRows !== null) {
             try {
-                /** @var \App\Services\FirestoreSimulasiPesertaStore $sp */
-                $sp = app(\App\Services\FirestoreSimulasiPesertaStore::class);
-                $rows = $sp->listBySimulasiId((int) $simulasiId, 2000);
-                $pesertaRecords = collect($rows)
+                $pesertaRecords = collect($firestorePesertaRows)
                     ->map(function ($row) {
                         $row = is_array($row) ? $row : [];
                         $row = array_merge([
@@ -2427,8 +2443,8 @@ class SimulasiController extends Controller
                 ->keyBy('user_id');
         }
 
-        $sqliteNilaiRecords = Nilai::where('simulasi_id', $simulasiId)
-            ->with('user')
+        // Only query SQLite nilai if Firestore didn't succeed or as fallback
+        $sqliteNilaiRecords = $nilaiRecords->isNotEmpty() ? $nilaiRecords : Nilai::where('simulasi_id', $simulasiId)
             ->get()
             ->keyBy('user_id');
 
@@ -2493,13 +2509,14 @@ class SimulasiController extends Controller
                 'student' => $student,
                 'session' => $session,
                 'nilai' => $nilai,
+                'peserta' => $peserta ?? $sqlitePeserta,
                 'status' => $status,
                 'statusText' => $statusText,
                 'statusColor' => $statusColor,
             ];
         });
 
-        return view('simulasi.student-status', compact('simulasi', 'studentData', 'classes'));
+        return ['studentData' => $studentData, 'classes' => $classes];
     }
 
     public function resetLogin(Request $request, $simulasiId, $userId)

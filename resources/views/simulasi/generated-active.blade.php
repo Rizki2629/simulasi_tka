@@ -95,22 +95,74 @@
 
         .actions {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: nowrap;
             margin-top: 10px;
+        }
+
+        .actions form {
+            flex: 1;
         }
 
         .btn {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 10px 12px;
+            justify-content: center;
+            gap: 6px;
+            padding: 9px 10px;
             border-radius: 10px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
             text-decoration: none;
             border: 1px solid transparent;
             transition: all 0.2s;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .actions .btn {
+            flex: 1;
+            width: 100%;
+        }
+
+        .btn-monitor {
+            color: #1e40af;
+            border-color: #bfdbfe;
+            background: #eff6ff;
+        }
+
+        .btn-monitor:hover {
+            background: #dbeafe;
+        }
+
+        .btn-rekap {
+            color: #6b21a8;
+            border-color: #e9d5ff;
+            background: #faf5ff;
+        }
+
+        .btn-rekap:hover {
+            background: #f3e8ff;
+        }
+
+        .btn-stop {
+            color: #b45309;
+            border-color: #fde68a;
+            background: #fffbeb;
+        }
+
+        .btn-stop:hover {
+            background: #fef3c7;
+        }
+
+        .btn-delete {
+            color: #b91c1c;
+            border-color: #fecaca;
+            background: #fff5f5;
+        }
+
+        .btn-delete:hover {
+            background: #fee2e2;
         }
 
         .btn-primary {
@@ -232,26 +284,26 @@
                             </div>
 
                             <div class="actions">
-                                <a class="btn btn-secondary" href="{{ route('simulasi.student.status', $sim->id) }}">
-                                    <span class="material-symbols-outlined" style="font-size: 18px;">monitor_heart</span>
+                                <a class="btn btn-monitor" href="{{ route('simulasi.student.status', $sim->id) }}">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">monitor_heart</span>
                                     Monitor
                                 </a>
-                                <a class="btn btn-secondary" href="{{ route('rekap-nilai.show', $sim->id) }}">
-                                    <span class="material-symbols-outlined" style="font-size: 18px;">grading</span>
+                                <a class="btn btn-rekap" href="{{ route('rekap-nilai.show', $sim->id) }}">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">grading</span>
                                     Rekap Nilai
                                 </a>
-                                <form action="{{ route('simulasi.stop', $sim->id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Hentikan simulasi ini? Simulasi akan dinonaktifkan tetapi data tetap tersimpan.');">
+                                <form action="{{ route('simulasi.stop', $sim->id) }}" method="POST" onsubmit="return confirm('Hentikan simulasi ini? Simulasi akan dinonaktifkan tetapi data tetap tersimpan.');">
                                     @csrf
-                                    <button type="submit" class="btn btn-secondary" style="color: #b45309; border-color: #fde68a; background: #fffbeb;">
-                                        <span class="material-symbols-outlined" style="font-size: 18px;">stop_circle</span>
+                                    <button type="submit" class="btn btn-stop">
+                                        <span class="material-symbols-outlined" style="font-size: 16px;">stop_circle</span>
                                         Hentikan
                                     </button>
                                 </form>
-                                <form action="{{ route('simulasi.delete', $sim->id) }}" method="POST" style="display: inline;" onsubmit="return confirm('HAPUS PERMANEN simulasi ini?\n\nSemua data peserta dan nilai akan ikut terhapus.\nTindakan ini tidak dapat dibatalkan!');">
+                                <form action="{{ route('simulasi.delete', $sim->id) }}" method="POST" onsubmit="return confirm('HAPUS PERMANEN simulasi ini?\n\nSemua data peserta dan nilai akan ikut terhapus.\nTindakan ini tidak dapat dibatalkan!');">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-secondary" style="color: #b91c1c; border-color: #fecaca; background: #fff5f5;">
-                                        <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+                                    <button type="submit" class="btn btn-delete">
+                                        <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
                                         Hapus
                                     </button>
                                 </form>

@@ -1,0 +1,52 @@
+config:
+  target: "https://sdnug09.app"
+  phases:
+    # Quick incremental test: 10 -> 25 -> 50 -> 75 -> 100 users
+    - duration: 20
+      arrivalRate: 10
+      name: "10 concurrent users"
+    - duration: 20
+      arrivalRate: 25
+      name: "25 concurrent users"
+    - duration: 20
+      arrivalRate: 50
+      name: "50 concurrent users"
+    - duration: 20
+      arrivalRate: 75
+      name: "75 concurrent users"
+    - duration: 20
+      arrivalRate: 100
+      name: "100 concurrent users"
+    - duration: 15
+      arrivalRate: 150
+      name: "150 concurrent users (breaking point?)"
+    - duration: 10
+      arrivalRate: 200
+      name: "200 concurrent users (extreme)"
+
+  defaults:
+    headers:
+      User-Agent: "Artillery-StressTest/1.0"
+      Accept: "text/html,application/xhtml+xml"
+
+scenarios:
+  - name: "Homepage Access"
+    weight: 50
+    flow:
+      - get:
+          url: "/"
+          followRedirect: true
+
+  - name: "Student Login Page"
+    weight: 30
+    flow:
+      - get:
+          url: "/simulasi/login"
+          followRedirect: true
+
+  - name: "Admin Login Page"
+    weight: 20
+    flow:
+      - get:
+          url: "/login"
+          followRedirect: true

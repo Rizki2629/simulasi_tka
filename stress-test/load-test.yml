@@ -1,0 +1,84 @@
+config:
+  target: "https://sdnug09.app"
+  phases:
+    # Phase 1: Warm-up (10 users over 30s)
+    - duration: 30
+      arrivalRate: 1
+      rampTo: 10
+      name: "Warm-up"
+    # Phase 2: Ramp-up to 50 users (60s)
+    - duration: 60
+      arrivalRate: 10
+      rampTo: 50
+      name: "Ramp-up to 50"
+    # Phase 3: Sustained 50 users (60s)
+    - duration: 60
+      arrivalRate: 50
+      name: "Sustained 50 users"
+    # Phase 4: Spike to 100 users (30s)
+    - duration: 30
+      arrivalRate: 50
+      rampTo: 100
+      name: "Spike to 100"
+    # Phase 5: Peak 100 users (30s)
+    - duration: 30
+      arrivalRate: 100
+      name: "Peak 100 users"
+
+  defaults:
+    headers:
+      User-Agent: "Artillery-StressTest/1.0"
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+      Accept-Language: "id-ID,id;q=0.9,en-US;q=0.8"
+
+  # Ensure we check HTTP response codes
+  ensure:
+    thresholds:
+      - http.response_time.p95: 3000   # p95 should be under 3s
+      - http.response_time.p99: 5000   # p99 should be under 5s
+    conditions:
+      - expression: "http.codes.200 / (http.codes.200 + http.codes.500 + http.codes.502 + http.codes.503) > 0.95"
+        strict: false
+
+scenarios:
+  # Scenario 1: Homepage / Landing (40% traffic)
+  - name: "Visit Homepage"
+    weight: 40
+    flow:
+      - get:
+          url: "/"
+          followRedirect: true
+
+  # Scenario 2: Student Login Page (30% traffic)
+  - name: "Student Login Page"
+    weight: 30
+    flow:
+      - get:
+          url: "/simulasi/login"
+          followRedirect: true
+
+  # Scenario 3: Admin Login Page (15% traffic)
+  - name: "Admin Login Page"
+    weight: 15
+    flow:
+      - get:
+          url: "/login"
+          followRedirect: true
+
+  # Scenario 4: Student Login Attempt (15% traffic)
+  - name: "Student Login Attempt"
+    weight: 15
+    flow:
+      - get:
+          url: "/simulasi/login"
+          followRedirect: true
+          capture:
+            - regexp: 'name="_token" value="([^"]+)"'
+              as: "csrfToken"
+      - think: 2
+      - post:
+          url: "/simulasi/student-login"
+          followRedirect: true
+          headers:
+            Content-Type: "application/x-www-form-urlencoded"
+          body: "_token={{ csrfToken }}&nisn=test_load&token=test_load"
